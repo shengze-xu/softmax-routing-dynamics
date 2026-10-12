@@ -1,0 +1,4 @@
+-r requirements.txt
+# Additional libraries for raw-log intake and fixed-token summaries.
+pandas==2.1.4
+pyarrow==14.0.2

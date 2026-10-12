@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "label": "no_drop-smoke",
+      "experiment": "router_update_no_drop",
+      "args": [
+        "--protocol",
+        "experiments/protocols/router_update_design.json",
+        "--probe-protocol",
+        "experiments/protocols/recovery_probe_design.json",
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/mechanism/smoke/no_drop",
+        "--cohort",
+        "no_drop",
+        "--role",
+        "smoke",
+        "--seed",
+        "5100",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "capacity_1_25-smoke",
+      "experiment": "router_update_capacity",
+      "args": [
+        "--protocol",
+        "experiments/protocols/router_update_design.json",
+        "--probe-protocol",
+        "experiments/protocols/recovery_probe_design.json",
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/mechanism/smoke/capacity_1_25",
+        "--cohort",
+        "capacity_1_25",
+        "--role",
+        "smoke",
+        "--seed",
+        "5300",
+        "--device",
+        "cuda"
+      ]
+    }
+  ]
+}

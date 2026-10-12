@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "label": "agnews_structure-4301",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4301",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4301",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4302",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4302",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4302",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4303",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4303",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4303",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4304",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4304",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4304",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4305",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4305",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4305",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4306",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4306",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4306",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4307",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4307",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4307",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "agnews_structure-4308",
+      "experiment": "agnews_structure_comparison",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/agnews_structure/4308",
+        "--protocol-id",
+        "agnews_structure_comparison_v1",
+        "--seed",
+        "4308",
+        "--config",
+        "configs/agnews_structure.json",
+        "--device",
+        "cuda"
+      ]
+    },
+    {
+      "label": "release_no_drop-4501",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4501",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4501",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4502",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4502",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4502",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4503",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4503",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4503",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4504",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4504",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4504",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4505",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4505",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4505",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4506",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4506",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4506",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4507",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4507",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4507",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_no_drop-4508",
+      "experiment": "agnews_no_drop_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_no_drop/4508",
+        "--protocol-id",
+        "agnews_no_drop_clamp_release_v1",
+        "--seed",
+        "4508",
+        "--config",
+        "configs/release_no_drop.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+      ]
+    },
+    {
+      "label": "release_capacity-4701",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4701",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4701",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4702",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4702",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4702",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4703",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4703",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4703",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4704",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4704",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4704",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4705",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4705",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4705",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4706",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4706",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4706",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4707",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4707",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4707",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    },
+    {
+      "label": "release_capacity-4708",
+      "experiment": "agnews_capacity_clamp_release",
+      "args": [
+        "--dataset-dir",
+        "data/agnews_prepared",
+        "--output-dir",
+        "outputs/release_capacity/4708",
+        "--protocol-id",
+        "agnews_capacity_clamp_release_v1",
+        "--seed",
+        "4708",
+        "--config",
+        "configs/release_capacity.json",
+        "--device",
+        "cuda",
+        "--role",
+        "primary",
+        "--protocol-sha256",
+        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+      ]
+    }
+  ]
+}

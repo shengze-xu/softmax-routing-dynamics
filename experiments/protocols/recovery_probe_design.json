@@ -1,0 +1,73 @@
+{
+  "protocol_id": "recovery_probe_v1",
+  "schema_version": 1,
+  "base_protocol_id": "router_update_recovery_v1",
+  "base_immutable_design_sha256": "0ded0f3ab7d9264a19ca601dce317d4dbc8b824fa618a92345e9086b2ec15288",
+  "additional_no_drop_seeds": {
+    "seeds": [
+      5601,
+      5602,
+      5603,
+      5604,
+      5605,
+      5606,
+      5607,
+      5608
+    ],
+    "initial_mass_targets": [
+      0.005,
+      0.01,
+      0.02,
+      0.04
+    ],
+    "branches": [
+      "free_release",
+      "continued_suppression_context_reference",
+      "zero_advantage_gradient_projection_reference"
+    ],
+    "primary_endpoint": "Within-seed difference in mean restricted persistent-recovery time between the zero-advantage-gradient projection reference and free release.",
+    "analysis": "Pool these eight independent seeds with the original no-drop seeds only after separate integrity checks; retain the seed as the inferential unit and report the exact two-sided sign test with the paired estimate."
+  },
+  "logit_decomposition": {
+    "identity": "For each fixed held-out token, q_after-q_before=(W_after-W_before)h_before+(b_after-b_before)+W_after(h_after-h_before).",
+    "tokens_per_layer": 128,
+    "smoke_tokens_per_layer": 8,
+    "probe_selection": "For each selected middle layer, use the first 128 active validation tokens from the preselected target domain in fixed validation order; keep token identities fixed across times, masses, and branches within a seed.",
+    "evaluation_interval_steps": 64,
+    "target_probability_threshold": 0.05,
+    "cohorts": {
+      "no_drop": {
+        "seeds": [
+          5601,
+          5602,
+          5603,
+          5604,
+          5605,
+          5606,
+          5607,
+          5608
+        ],
+        "reuse": "Collected during the no-drop seed additional."
+      },
+      "capacity_1_25": {
+        "seeds": [
+          5401,
+          5402,
+          5403,
+          5404,
+          5405,
+          5406,
+          5407,
+          5408
+        ],
+        "reuse": "Deterministically rerun the completed capacity cohort because hidden features were not retained in its original outputs."
+      }
+    },
+    "required_checks": [
+      "The fixed probe-token inventory is identical at consecutive evaluation times.",
+      "The maximum absolute error in reconstructing every router-logit coordinate is reported.",
+      "Observed and reconstructed target-probability threshold crossings agree token by token.",
+      "Router-parameter and feature contributions are reported separately for the target-comparator logit gap."
+    ]
+  }
+}

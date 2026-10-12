@@ -1,0 +1,174 @@
+{
+  "protocol_id": "router_update_recovery_v1",
+  "schema_version": 2,
+  "immutable_design_sha256": "0ded0f3ab7d9264a19ca601dce317d4dbc8b824fa618a92345e9086b2ec15288",
+  "immutable_design": {
+    "objective": "Prospectively test whether early, score-derived router updates forecast later persistent recovery and whether recovery-time scaling changes with active-face leakage.",
+    "model_and_data_lock": {
+      "implementation_family": "independent_full_agnews_transformer_moe",
+      "routing": "input_conditioned_top_2",
+      "architecture_source": "experiments/models/agnews_no_drop_recovery.py",
+      "data_source": "checksum-verified full balanced AG News corpus for the no-drop and capacity recovery experiments",
+      "checkpoint_steps": 29950,
+      "post_fork_steps": 1024,
+      "evaluation_interval_steps": 64,
+      "middle_layers_zero_based": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "target_probability_threshold": 0.05,
+      "persistent_evaluations": 2
+    },
+    "cohorts": [
+      {
+        "cohort": "no_drop",
+        "capacity_factor": null,
+        "seeds": [
+          5201,
+          5202,
+          5203,
+          5204,
+          5205,
+          5206,
+          5207,
+          5208
+        ],
+        "initial_mass_targets": [
+          0.005,
+          0.01,
+          0.02,
+          0.04
+        ],
+        "branches": [
+          "free_release",
+          "continued_suppression_context_reference",
+          "zero_advantage_gradient_projection_reference"
+        ]
+      },
+      {
+        "cohort": "capacity_1_25",
+        "capacity_factor": 1.25,
+        "seeds": [
+          5401,
+          5402,
+          5403,
+          5404,
+          5405,
+          5406,
+          5407,
+          5408
+        ],
+        "initial_mass_targets": [
+          0.005,
+          0.01,
+          0.02,
+          0.04
+        ],
+        "branches": [
+          "free_release",
+          "continued_suppression_context_reference",
+          "zero_advantage_gradient_projection_reference"
+        ],
+        "cohort_gate": "Run only after the no-drop integrity, entry, logging-completeness, and forecast-freeze checks pass; no-drop outcomes may not change capacity-limited endpoints or analysis."
+      }
+    ],
+    "branch_definitions": {
+      "free_release": "Remove the suppression clamp at the fork and apply unmodified training updates.",
+      "continued_suppression_context_reference": "Retain the legacy target-below-comparator constraint only as a context reference; do not interpret it as a neutral causal control.",
+      "zero_advantage_gradient_projection_reference": "Remove the clamp, then project the target-versus-comparator component of the router-logit gradient to zero on the selected evaluation domain before the router optimizer update; leave common-mode router gradients, experts, nonselected logits, optimizer state, future batches, and all other parameters matched."
+    },
+    "logging_schema": {
+      "unit": "optimizer_step_seed_layer_mass_branch",
+      "required_fields": [
+        "protocol_id",
+        "seed",
+        "cohort",
+        "capacity_factor",
+        "branch",
+        "optimizer_step",
+        "layer_zero_based",
+        "target_expert",
+        "comparator_expert",
+        "initial_target_mass",
+        "raw_target_logit_pre_update",
+        "raw_comparator_logit_pre_update",
+        "target_logit_gradient",
+        "comparator_logit_gradient",
+        "gradient_descent_logodds_proxy",
+        "realized_target_logit_update",
+        "realized_comparator_logit_update",
+        "realized_logodds_update_advantage",
+        "cumulative_realized_logodds_update_advantage",
+        "heldout_pre_topk_target_probability",
+        "heldout_target_traffic",
+        "total_assignments",
+        "kept_assignments",
+        "dropped_assignments",
+        "persistent_recovery_indicator",
+        "model_state_sha256",
+        "optimizer_state_sha256",
+        "future_batch_plan_sha256"
+      ],
+      "integrity_rules": [
+        "The three branches share the same forked model, optimizer, and future-batch fingerprints within each seed, layer, and initial-mass cell.",
+        "Realized logit updates are measured from parameters before and after the optimizer step, not inferred from the learning rate.",
+        "Pre-top-k probabilities and post-dispatch traffic are logged separately.",
+        "Capacity runs satisfy total_assignments = kept_assignments + dropped_assignments at every logged step.",
+        "Layers and mass cells are repeated measurements; the seed remains the inferential unit."
+      ]
+    },
+    "forecast_rule": {
+      "forecast_freeze_step": 256,
+      "forecast_horizon_step": 1024,
+      "information_allowed": "Initial mass and realized router-gradient/update logs through step 256 only.",
+      "prediction": "Extrapolate the seed-layer cumulative realized log-odds update advantage from the first 256 steps to a prespecified budget-crossing time; declare no crossing when the estimated slope is nonpositive.",
+      "primary_endpoint": "Within-seed mean absolute error between forecast and censored persistent-recovery time across prescribed layers and initial-mass cells.",
+      "secondary_endpoint": "Within-seed fraction of future persistent-recovery outcomes correctly classified at the frozen forecast time.",
+      "censoring_step": 1088,
+      "no_refit_after_freeze": true
+    },
+    "mechanism_contrasts": {
+      "primary": "free_release minus zero_advantage_gradient_projection_reference on within-seed forecast error and restricted persistent-recovery time",
+      "context_only": "free_release minus continued_suppression_context_reference",
+      "capacity_policy": "Analyze cohorts separately; do not compare no-drop and capacity-limited effect magnitudes as a capacity benefit.",
+      "multiplicity": "One primary mechanism contrast per cohort; secondary layer and mass results are descriptive with seed-clustered summaries."
+    },
+    "mass_scaling_analysis": {
+      "seed_level_response": "Within each seed and branch, average censored recovery times across prescribed middle layers at each initial-mass target.",
+      "candidate_clocks": [
+        "log(1/epsilon)",
+        "1/epsilon"
+      ],
+      "leakage_classification": "Classify a cell from the pre-outcome first-256-step active-face leakage log, using a threshold fixed before launch.",
+      "comparison": "Report leave-one-seed-out prediction error for the two clocks separately within the prespecified leakage classes.",
+      "restriction": "Do not claim inverse-mass or logarithmic scaling unless the corresponding leakage hypotheses and entry checks pass."
+    },
+    "stopping_and_exclusion": {
+      "exclude_only_for": [
+        "fork fingerprint mismatch",
+        "missing required gradient or optimizer-update logs",
+        "failed initial-mass entry tolerance",
+        "assignment-conservation failure",
+        "nonfinite loss or parameters"
+      ],
+      "entry_absolute_tolerance": 0.001,
+      "outcome_blind_replacement": "A failed seed may be replaced only before any post-fork outcome is read, using the next consecutive seed and a recorded reason.",
+      "early_success_stop": false
+    },
+    "results_intake_contract": {
+      "required_files": [
+        "protocol_snapshot.json",
+        "environment.json",
+        "integrity_per_seed.csv",
+        "router_update_log.parquet",
+        "forecast_frozen_at_step_256.csv",
+        "recovery_per_seed_layer_mass_branch.csv",
+        "seed_level_primary_endpoints.csv",
+        "analysis_summary.json"
+      ]
+    }
+  },
+  "resampling_seed": 2101240423
+}

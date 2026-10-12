@@ -1,0 +1,17 @@
+{
+  "batch_size": 4,
+  "capacity_factor": 1.25,
+  "d_model": 384,
+  "eval_batch_size": 4,
+  "expert_hidden": 768,
+  "learning_rate": 0.0002,
+  "limit_train": 119800,
+  "limit_validation": 7596,
+  "max_steps": 29950,
+  "num_experts": 8,
+  "num_heads": 6,
+  "num_layers": 6,
+  "precision": "bf16",
+  "top_k": 2,
+  "weight_decay": 0.01
+}
