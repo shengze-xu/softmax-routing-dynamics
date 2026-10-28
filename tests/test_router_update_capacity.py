@@ -11,14 +11,13 @@ from unittest import mock
 
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from experiments.models import agnews_no_drop_recovery as no_drop_recovery
 from experiments.models import agnews_capacity_recovery as capacity_recovery
 from experiments.studies import router_update_capacity as mechanism
-from experiments.audits.audit_router_update_capacity import audit_result
 
 
 class MechanismCapacityValidationTests(unittest.TestCase):
@@ -149,98 +148,6 @@ class MechanismCapacityValidationTests(unittest.TestCase):
                 for error in calibration["absolute_error_by_layer"].values()
             )
         )
-
-    def test_smoke_audit_uses_configured_forecast_freeze_step(self) -> None:
-        log = {
-            "protocol_id": "test",
-            "seed": 5300,
-            "cohort": "capacity_1_25",
-            "capacity_factor": 1.25,
-            "branch": "",
-            "optimizer_step": 1,
-            "layer_zero_based": 1,
-            "target_expert": 0,
-            "comparator_expert": 1,
-            "initial_target_mass": 0.02,
-            "raw_target_logit_pre_update": 0.0,
-            "raw_comparator_logit_pre_update": 0.0,
-            "target_logit_gradient": 0.0,
-            "comparator_logit_gradient": 0.0,
-            "gradient_descent_logodds_proxy": 0.0,
-            "realized_target_logit_update": 0.0,
-            "realized_comparator_logit_update": 0.0,
-            "realized_logodds_update_advantage": 0.0,
-            "realized_update_identity_error": 0.0,
-            "cumulative_realized_logodds_update_advantage": 0.0,
-            "heldout_pre_topk_target_probability": None,
-            "heldout_target_traffic": None,
-            "total_assignments": 2,
-            "kept_assignments": 1,
-            "dropped_assignments": 1,
-            "persistent_recovery_indicator": None,
-            "model_state_sha256": "model",
-            "optimizer_state_sha256": "optimizer",
-            "future_batch_plan_sha256": "plan",
-        }
-        branches = {}
-        for name in mechanism.BRANCHES:
-            row = dict(log, branch=name)
-            branches[name] = {
-                "start_model_fingerprint": "model",
-                "start_optimizer_fingerprint": "optimizer",
-                "future_batch_plan_fingerprint": "plan",
-                "training_loss_first": 1.0,
-                "training_loss_last": 0.9,
-                "router_update_log": [row],
-                "total_dropped_assignments": 1,
-                "forecast_rows": [
-                    {"layer_zero_based": 1, "freeze_step": 4}
-                ],
-                "projection_max_errors": {
-                    "removed_component": 0.0,
-                    "common_mode": 0.0,
-                    "other_rows": 0.0,
-                },
-            }
-        result = {
-            "schema_version": 2,
-            "implementation_version": 2,
-            "role": "smoke",
-            "cohort": "capacity_1_25",
-            "seed": 5300,
-            "config": {
-                "capacity_factor": 1.25,
-                "capacity_policy": "drop_no_rerouting",
-                "horizon_steps": 1,
-                "middle_layers": [1],
-                "forecast_freeze_step": 4,
-            },
-            "execution": {
-                "device": "cuda",
-                "gpu": "NVIDIA GeForce RTX 5090",
-                "elapsed_seconds": 1.0,
-            },
-            "cells": {
-                "0.02": {
-                    "pairing": {
-                        "model": True,
-                        "optimizer": True,
-                        "future_batch_plan": True,
-                    },
-                    "calibration": {
-                        "absolute_error_by_layer": {"1": 0.0}
-                    },
-                    "branches": branches,
-                }
-            },
-        }
-        audit = audit_result(result, expected_role="smoke")
-        self.assertEqual(audit["status"], "passed", audit["failures"])
-        result["execution"]["gpu"] = "NVIDIA A100"
-        audit = audit_result(result, expected_role="smoke")
-        self.assertEqual(audit["status"], "passed", audit["failures"])
-        strict = audit_result(result, expected_role="smoke", expected_gpu="RTX 5090")
-        self.assertEqual(strict["failures"], ["GPU identity does not match RTX 5090"])
 
 
 if __name__ == "__main__":

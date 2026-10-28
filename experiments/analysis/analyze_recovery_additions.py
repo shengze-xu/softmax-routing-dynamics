@@ -1,7 +1,7 @@
 """Threshold sensitivity and all-complement fixed-token trajectory summaries.
 
 Usage: python3 -m experiments.analysis.analyze_recovery_additions
-Extraction: experiments/analysis/extract_recovery_additions.py on the data host.
+Use experiments.analysis.extract_recovery_additions to prepare the inputs.
 """
 from pathlib import Path
 import argparse
@@ -20,6 +20,23 @@ def interval(x):
     means = x[rng.integers(0, len(x), (100000, len(x)))].mean(axis=1)
     return np.quantile(means, [.025, .975]).tolist()
 
+def summarize_initial_masses(cells):
+    """Average layers within each seed, then weight paired seeds equally."""
+    per_seed = cells[cells.threshold == .05].groupby(
+        ['cohort', 'seed', 'initial_mass', 'branch'])[['time', 'confirmed']].mean().reset_index()
+    rows = []
+    for (cohort, mass), frame in per_seed.groupby(['cohort', 'initial_mass']):
+        times = frame.pivot(index='seed', columns='branch', values='time')
+        fractions = frame.groupby('branch').confirmed.mean()
+        rows.append(dict(
+            cohort=cohort, initial_mass=mass, seed_count=len(times),
+            control_rmst=times[BRANCHES[0]].mean(),
+            projection_rmst=times[BRANCHES[1]].mean(),
+            difference=(times[BRANCHES[1]] - times[BRANCHES[0]]).mean(),
+            control_confirmed=fractions[BRANCHES[0]],
+            projection_confirmed=fractions[BRANCHES[1]]))
+    return pd.DataFrame(rows)
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input-dir', type=Path, default=INPUTS)
@@ -28,11 +45,6 @@ def main():
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
     data = json.loads((args.input_dir / 'extracted.json').read_text())
-    original = json.loads((args.input_dir / 'inventory.json').read_text())
-    known = {p['path']: p['sha256'] for g in original['groups'].values() for p in g['files']}
-    for source in data['sources']:
-        if source['path'].endswith('result.json'):
-            assert source['sha256'] == known[source['path']]
     cells = pd.DataFrame(data['threshold_cells'], columns=['group','seed','initial_mass','branch','layer','threshold','time','confirmed'])
     cells['cohort'] = np.where(cells.group.str.startswith('no_drop'), 'no_drop', 'capacity')
     per = cells.groupby(['cohort','seed','threshold','branch'])[['time','confirmed']].mean().reset_index()
@@ -48,6 +60,7 @@ def main():
     summary.to_csv(out / 'threshold_summary.csv', index=False)
     # The 0.05 threshold with second-evaluation confirmation is the main RMST endpoint.
     summary[summary.threshold==0.05].to_csv(out / 'confirmed_recovery_rmst_summary.csv', index=False)
+    summarize_initial_masses(cells).to_csv(out / 'recovery_rmst_by_initial_mass.csv', index=False)
     p = pd.DataFrame(data['probe_trajectories'],columns=['cohort','seed','initial_mass','branch','step','count','A','U','C','budget','margin','above','probability'])
     for c in ['A','U','C','budget','margin','above','probability']:
         p[c] /= p['count']

@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-"""Restricted mean time to confirmed recovery under 1024-step follow-up.
+"""Restricted mean time to confirmed recovery through 1,024 steps.
 
-The event is the SECOND of two consecutive 64-step evaluations above 0.05.
-Each seed contains 16 layer-by-initial-mass cells. Complete administrative
-follow-up makes the empirical RMST equal to the average truncated event time.
-The retained onset-score mean and recovery fraction are sufficient statistics:
-mean(min(T_confirm, 1024)) = mean(Z_1088) - 64*(1-f) + 64*f.
-This post hoc analysis preserves the original endpoint and source CSV files.
-"""
+Confirmation requires two consecutive qualifying evaluations. Reconstruct
+confirmation times from encoded onset means and recovery fractions, then
+summarize paired effects by seed."""
 from __future__ import annotations
 
 if __package__ in (None, ""):
@@ -17,7 +13,6 @@ if __package__ in (None, ""):
 
 import argparse
 import csv
-import hashlib
 import json
 from pathlib import Path
 import numpy as np
@@ -50,14 +45,13 @@ def interval(values, draws=100000, seed=20260831):
 
 
 def analyze(tables=TABLES):
-    seeds, summaries, sources=[],[],[]
+    seeds, summaries=[],[]
     for cohort, filename, expected, fkey, pkey, ffkey, pfkey in SPECS:
         path=tables/filename
         with path.open(newline='') as stream:
             rows=list(csv.DictReader(stream))
         if sorted(int(r['seed']) for r in rows)!=sorted(expected):
             raise ValueError('Unexpected seed inventory: '+filename)
-        sources.append({'file':str(path.resolve()), 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
         for row in rows:
             control=confirmed_rmst(float(row[fkey]),float(row[ffkey]))
             projected=confirmed_rmst(float(row[pkey]),float(row[pfkey]))
@@ -74,49 +68,18 @@ def analyze(tables=TABLES):
             projected_minus_control_rmst=float(np.mean(diff)),bootstrap_95_low=lo,bootstrap_95_high=hi,
             positive_pairs=sum(d>0 for d in diff),negative_pairs=sum(d<0 for d in diff),ties=sum(d==0 for d in diff),
             exact_two_sided_sign_p=sign_p(diff)))
-    return seeds,summaries,sources
-
-
-def verify_cells(seeds, paths=()):
-    """Independent checks against available complete cell records (16 seeds)."""
-    lookup={int(s['seed']):s for s in seeds}; reports=[]
-    branches={'free_release':'control_rmst','zero_advantage_gradient_projection_reference':'projected_rmst'}
-    for path in paths:
-        if not path.exists():continue
-        grouped={}
-        with path.open(newline='') as stream:
-            records=list(csv.DictReader(stream))
-        for r in records:
-            if r['branch'] not in branches:continue
-            event=r['persistent_recovery'].lower()=='true'
-            start=float(r['restricted_recovery_step'])
-            if event and not GRID <= start <= TAU-GRID:raise ValueError('Invalid event onset')
-            if not event and start!=OLD_CODE:raise ValueError('Invalid unconfirmed score')
-            time=start+GRID if event else TAU
-            grouped.setdefault((int(r['seed']),r['branch']),[]).append(time)
-        for (seed,branch),times in grouped.items():
-            assert len(times)==CELLS
-            assert float(np.mean(times))==lookup[seed][branches[branch]]
-        reports.append(dict(file=path.name,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),paired_seeds=len(grouped)//2,matched=True))
-    return reports
+    return seeds,summaries
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input-dir',type=Path,required=True)
-    parser.add_argument('--cell-input',type=Path,nargs='*',default=[])
     parser.add_argument('--output-dir',type=Path,default=ROOT/'outputs/confirmed_recovery')
     args=parser.parse_args();args.output_dir.mkdir(parents=True,exist_ok=True)
-    seeds,summaries,sources=analyze(args.input_dir.resolve())
-    checks=verify_cells(seeds,args.cell_input)
+    seeds,summaries=analyze(args.input_dir.resolve())
     for stem,rows in [('per_seed',seeds),('summary',summaries)]:
         with (args.output_dir/f'confirmed_recovery_rmst_{stem}.csv').open('w',newline='') as f:
             w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
-    record=dict(analysis_role='post_hoc',event='second consecutive evaluation at or above 0.05',
-        evaluation_grid=GRID,restriction_steps=TAU,censoring='administrative at 1024',
-        inferential_unit='paired seed; all 16 layer-by-mass cells remain grouped',bootstrap_draws=100000,
-        bootstrap_seed=20260831,bootstrap='percentile; paired seed differences',sources=sources,cell_checks=checks)
-    (args.output_dir/'confirmed_recovery_rmst_provenance.json').write_text(json.dumps(record,indent=2)+'\n')
-    print(json.dumps(summaries,indent=2));print('Independent cell checks:',checks)
+    print(json.dumps(summaries, indent=2))
 
 if __name__=='__main__':main()

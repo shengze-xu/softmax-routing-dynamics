@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Prepare the frozen-source candidate corpus for the small multidomain routing exploratory."""
+"""Prepare the fixed-source four-domain corpus for small-model routing comparisons."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import platform
-import socket
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,7 +18,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from experiments.data.paths import manifest_relative_path
-
 
 
 SCHEMA_VERSION = 1
@@ -74,14 +71,6 @@ DOMAINS = (
 )
 
 
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(block)
-    return value.hexdigest()
-
-
 def stable_u64(text: str) -> int:
     return int.from_bytes(
         hashlib.sha256(text.encode("utf-8")).digest()[:8],
@@ -107,7 +96,6 @@ def save_array(path: Path, value: np.ndarray) -> dict[str, object]:
         "file": path.name,
         "shape": list(value.shape),
         "dtype": str(value.dtype),
-        "sha256": digest(path),
     }
 
 
@@ -334,19 +322,8 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
             "class": type(tokenizer).__name__,
             "vocab_size": len(tokenizer),
             "eos_token_id": int(tokenizer.eos_token_id),
-            "files_sha256": {
-                path.name: digest(path)
-                for path in sorted(tokenizer_dir.iterdir())
-                if path.is_file()
-            },
         },
         "arrays": arrays,
-        "execution": {
-            "device": "cpu",
-            "hostname": socket.gethostname(),
-            "python": platform.python_version(),
-            "numpy": np.__version__,
-        },
     }
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(
@@ -356,7 +333,6 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
     print(json.dumps({
         "status": manifest["status"],
         "output": str(output_dir),
-        "manifest_sha256": digest(manifest_path),
         "domains": manifest["domain_names"],
         "splits": split_summaries,
     }, sort_keys=True))

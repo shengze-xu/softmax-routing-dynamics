@@ -4,10 +4,7 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import platform
-import socket
 import sys
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -22,55 +19,15 @@ if str(ROOT) not in sys.path:
 
 from experiments.data.paths import manifest_relative_path
 
-from experiments.data.prepare_multidomain_small_corpus import DOMAINS
+from experiments.data.prepare_multidomain_small_corpus import (
+    DOMAINS, assign_split, license_ok, row_id, save_array, stable_u64,
+)
 
 
 SCHEMA_VERSION = 1
 SPLITS = ("train", "validation", "shift")
 DEFAULT_SPLIT_KEY = "6d6f652d7468656f72792d7068617365332d7631"
 DATASET_ID = "multidomain-64m-2m-2m-v1"
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(block)
-    return value.hexdigest()
-
-
-def stable_u64(text: str) -> int:
-    return int.from_bytes(
-        hashlib.sha256(text.encode("utf-8")).digest()[:8],
-        "big",
-        signed=False,
-    )
-
-
-def assign_split(domain: str, document_id: str, key_hex: str) -> str:
-    """Assign document-disjoint splits using a reproducible byte key."""
-    message = bytes.fromhex(key_hex) + f":{domain}:{document_id}".encode("utf-8")
-    value = int.from_bytes(hashlib.sha256(message).digest()[:8], "big") % 10_000
-    if value < 8_000:
-        return "train"
-    if value < 9_000:
-        return "validation"
-    return "shift"
-
-
-def row_id(domain, row: dict[str, object], index: int) -> str:
-    if row.get("id") is not None:
-        return str(row["id"])
-    text = str(row.get("text", ""))
-    return f"{index}:{hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]}"
-
-
-def license_ok(domain, row: dict[str, object]) -> tuple[bool, str]:
-    if domain.expected_license_fragment is None:
-        return True, domain.declared_license
-    metadata = row.get("metadata") or {}
-    observed = str(metadata.get("license", ""))
-    return domain.expected_license_fragment in observed, observed
 
 
 def stream_domain(
@@ -174,16 +131,6 @@ def stream_domain(
         "target_tokens": token_counts,
         "observed_licenses": sorted(observed_licenses),
         "rejected_license_rows": rejected_licenses,
-    }
-
-
-def save_array(path: Path, value: np.ndarray) -> dict[str, object]:
-    np.save(path, value, allow_pickle=False)
-    return {
-        "file": path.name,
-        "shape": list(value.shape),
-        "dtype": str(value.dtype),
-        "sha256": digest(path),
     }
 
 
@@ -343,19 +290,8 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
                 "class": type(tokenizer).__name__,
                 "vocab_size": len(tokenizer),
                 "eos_token_id": int(tokenizer.eos_token_id),
-                "files_sha256": {
-                    path.name: digest(path)
-                    for path in sorted(tokenizer_dir.iterdir())
-                    if path.is_file()
-                },
             },
             "arrays": arrays,
-            "execution": {
-                "device": "cpu",
-                "hostname": socket.gethostname(),
-                "python": platform.python_version(),
-                "numpy": np.__version__,
-            },
         }
         manifest_path = staging_dir / "manifest.json"
         manifest_path.write_text(
@@ -368,14 +304,12 @@ def prepare(args: argparse.Namespace) -> dict[str, object]:
             staging_dir.rmdir()
         raise
 
-    final_manifest = output_dir / "manifest.json"
     print(
         json.dumps(
             {
                 "status": manifest["status"],
                 "dataset_id": DATASET_ID,
                 "output": str(output_dir),
-                "manifest_sha256": digest(final_manifest),
                 "domains": manifest["domain_names"],
                 "splits": split_summaries,
             },

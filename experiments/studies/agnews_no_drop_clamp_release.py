@@ -30,15 +30,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.seed not in PRIMARY_SEEDS:
         raise ValueError(f"Seed is outside the recorded inventory: {args.seed}")
 
-    # The reusable core excludes the recorded seed set by construction. The
-    # protocol validator and this adapter replace only that launch guard; the
-    # numerical implementation and configuration remain unchanged.
-    frozen_guard = core.PRIMARY_SEEDS
-    try:
-        core.PRIMARY_SEEDS = set()
-        result = core.run(args)
-    finally:
-        core.PRIMARY_SEEDS = frozen_guard
+    result = core.run(args)
 
     result.update(
         {
@@ -46,7 +38,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "role": "primary",
             "primary_wrapper_version": PRIMARY_WRAPPER_VERSION,
             "no_drop_release_confirmatory": True,
-            "primary_protocol_sha256": args.protocol_sha256,
         }
     )
     destination = args.output_dir.resolve() / "result.json"
@@ -73,7 +64,6 @@ def main() -> None:
     parser.add_argument("--dataset-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--protocol-id", required=True)
-    parser.add_argument("--protocol-sha256", required=True)
     parser.add_argument("--role", required=True)
     parser.add_argument("--seed", type=int, required=True)
     configuration = parser.add_mutually_exclusive_group(required=True)

@@ -2,7 +2,6 @@
 """Numerical checks for the full-hull case and exponents above one."""
 import argparse
 from pathlib import Path
-import csv
 import sys
 import numpy as np
 from scipy.integrate import solve_ivp

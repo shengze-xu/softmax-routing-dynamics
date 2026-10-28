@@ -1,0 +1,30 @@
+# Recorded environments for Python 3.11.9. Install with pip >= 25.1.
+# Example: python -m pip install --group neural --group analysis
+[dependency-groups]
+numerical = [
+    "numpy==1.26.4",
+    "scipy==1.17.1",
+]
+neural = [
+    {include-group = "numerical"},
+    "torch==2.3.1",
+    "scikit-learn==1.2.2",
+]
+analysis = [
+    {include-group = "numerical"},
+    "pandas==2.1.4",
+]
+data = [
+    {include-group = "numerical"},
+    "datasets==2.19.2",
+    "transformers==4.40.2",
+    "huggingface-hub==0.23.4",
+    "pyarrow==14.0.2",
+]
+# RTX 5090 / CUDA 12.8: use a separate environment, without CPU groups.
+cu128 = [
+    "numpy==2.3.3",
+    "scipy==1.17.1",
+    "torch==2.8.0",
+    "scikit-learn==1.7.2",
+]

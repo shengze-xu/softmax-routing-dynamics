@@ -103,8 +103,6 @@ def fit_loglog_slope(x: Array, y: Array, count: int = 6) -> float:
     return float(slope)
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dt", type=float, default=0.02)

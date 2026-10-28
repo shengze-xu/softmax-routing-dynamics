@@ -220,7 +220,7 @@ def simulate_recovery(
     }
 
 
-def pointwise_audit(n_values: list[int], samples: int, seed: int) -> list[dict[str, object]]:
+def pointwise_evaluation(n_values: list[int], samples: int, seed: int) -> list[dict[str, object]]:
     rng = np.random.default_rng(seed)
     rows: list[dict[str, object]] = []
     for n in n_values:
@@ -298,8 +298,6 @@ def summarize_recovery(rows: list[dict[str, object]], n_values: list[int]) -> li
     return summaries
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--n-values", type=int, nargs="+", default=[4, 8])
@@ -341,7 +339,7 @@ def main() -> None:
     if args.pointwise_samples <= 0:
         raise SystemExit("pointwise-samples must be positive.")
 
-    pointwise_rows = pointwise_audit(n_values, args.pointwise_samples, args.seed)
+    pointwise_rows = pointwise_evaluation(n_values, args.pointwise_samples, args.seed)
     recovery_rows: list[dict[str, object]] = []
     for n in n_values:
         for epsilon in leakage_epsilons:

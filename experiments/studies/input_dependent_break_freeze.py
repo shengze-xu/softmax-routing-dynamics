@@ -224,8 +224,6 @@ def aggregate_results(results: list[TrainResult]) -> AggregatedResult:
     )
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pre-shift-epochs", type=int, default=120)
@@ -412,7 +410,6 @@ def main() -> None:
         ],
         regime_rows,
     )
-
 
 
 if __name__ == "__main__":

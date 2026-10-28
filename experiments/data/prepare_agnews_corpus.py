@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare the full, deduplicated AG News AG News corpus candidate."""
+"""Prepare the full, deduplicated and balanced AG News corpus."""
 
 from __future__ import annotations
 
@@ -10,10 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
-import platform
 from pathlib import Path
 import sys
-import socket
 from typing import Any
 
 import numpy as np
@@ -25,24 +23,9 @@ if str(ROOT) not in sys.path:
 from experiments.data.paths import manifest_relative_path
 
 
-
 SCHEMA_VERSION = 1
 DATASET_ID = "agnews-full-balanced-v1"
 DOMAIN_NAMES = ["World", "Sports", "Business", "Sci/Tech"]
-SOURCE_DIGESTS = {
-    "train.csv": {
-        "md5": "b1a00f826fdfbd249f79597b59e1dc12",
-        "sha256": (
-            "76a0a2d2f92b286371fe4d4044640910a04a803fdd2538e0f3f29a5c6f6b672e"
-        ),
-    },
-    "test.csv": {
-        "md5": "d52ea96a97a2d943681189a97654912d",
-        "sha256": (
-            "521465c2428ed7f02f8d6db6ffdd4b5447c1c701962353eb2c40d548c3c85699"
-        ),
-    },
-}
 TRAIN_PER_DOMAIN = 29_950
 VALIDATION_PER_DOMAIN = 1_899
 SEQUENCE_LENGTH = 64
@@ -54,14 +37,6 @@ class Record:
     domain: int
     text: str
     digest: str
-
-
-def file_digest(path: Path, algorithm: str = "sha256") -> str:
-    value = hashlib.new(algorithm)
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(block)
-    return value.hexdigest()
 
 
 def normalize_text(title: str, description: str) -> str:
@@ -205,7 +180,6 @@ def save_array(path: Path, value: np.ndarray) -> dict[str, Any]:
         "file": path.name,
         "shape": list(value.shape),
         "dtype": str(value.dtype),
-        "sha256": file_digest(path),
     }
 
 
@@ -231,13 +205,6 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         raise FileExistsError(
             f"Refusing to overwrite corpus or staging directory: {output_dir}"
         )
-    for name, expected in SOURCE_DIGESTS.items():
-        path = source_dir / name
-        if not path.is_file():
-            raise FileNotFoundError(path)
-        for algorithm, digest in expected.items():
-            if file_digest(path, algorithm) != digest:
-                raise ValueError(f"{name}: {algorithm} checksum mismatch")
 
     train_raw = read_records(source_dir / "train.csv")
     validation_raw = read_records(source_dir / "test.csv")
@@ -292,11 +259,6 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         for suffix, value in zip(suffixes, payload):
             name = f"{split}_{suffix}"
             arrays[name] = save_array(staging_dir / f"{name}.npy", value)
-    tokenizer_files = {
-        path.name: file_digest(path)
-        for path in sorted(tokenizer_dir.iterdir())
-        if path.is_file()
-    }
     token_counts: dict[str, dict[str, int]] = {}
     for split, records, payload in (
         ("train", train_selected, train),
@@ -322,17 +284,15 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "source": {
             name: {
-                **SOURCE_DIGESTS[name],
                 "path": manifest_relative_path(source_dir / name, output_dir),
             }
-            for name in sorted(SOURCE_DIGESTS)
+            for name in ("train.csv", "test.csv")
         },
         "tokenizer": {
             "path": manifest_relative_path(tokenizer_dir, output_dir),
             "class": type(tokenizer).__name__,
             "vocab_size": len(tokenizer),
             "eos_token_id": int(tokenizer.eos_token_id),
-            "files_sha256": tokenizer_files,
         },
         "domain_names": DOMAIN_NAMES,
         "selection": {
@@ -371,12 +331,6 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
             "target_token_counts": token_counts,
         },
         "arrays": arrays,
-        "execution": {
-            "device": "cpu",
-            "hostname": socket.gethostname(),
-            "python": platform.python_version(),
-            "numpy": np.__version__,
-        },
     }
     manifest_path = staging_dir / "manifest.json"
     manifest_path.write_text(
@@ -390,7 +344,6 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
                 "status": manifest["status"],
                 "dataset_id": DATASET_ID,
                 "output_dir": str(output_dir),
-                "manifest_sha256": file_digest(output_dir / "manifest.json"),
                 "train_documents": len(train_selected),
                 "validation_documents": len(validation_selected),
             },

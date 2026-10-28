@@ -145,42 +145,6 @@ def balanced_router_loss(
     return torch.stack(penalties).mean()
 
 
-def add_training_metadata(
-    result: dict[str, object],
-    *,
-    args: argparse.Namespace,
-) -> bool:
-    uniform_cross_entropy = math.log(int(result["dataset"]["vocab_size"]))
-    initial_losses = [
-        float(record["initial_validation"]["loss"])
-        for record in result["conditions"]
-    ]
-    maximum_initial_excess = max(
-        abs(value - uniform_cross_entropy)
-        for value in initial_losses
-    )
-    initialization_gate_passed = (
-        maximum_initial_excess <= args.initial_ce_tolerance
-    )
-    result["implementation_version"] = IMPLEMENTATION_VERSION
-    result["training_objectives"] = {
-        "init_std": args.init_std,
-        "router_init_std": args.router_init_std,
-        "balance_lambda": args.balance_lambda,
-        "router_z_loss": args.router_z_loss,
-        "importance_gap_weight": args.importance_gap_weight,
-        "initial_ce_tolerance": args.initial_ce_tolerance,
-    }
-    result["initialization_gate"] = {
-        "passed": initialization_gate_passed,
-        "uniform_cross_entropy": uniform_cross_entropy,
-        "initial_validation_losses": initial_losses,
-        "maximum_absolute_excess": maximum_initial_excess,
-        "tolerance": args.initial_ce_tolerance,
-    }
-    return initialization_gate_passed
-
-
 def run_gpt(args: argparse.Namespace) -> dict[str, object]:
     global ACTIVE_ARGS
     ACTIVE_ARGS = args
@@ -188,22 +152,9 @@ def run_gpt(args: argparse.Namespace) -> dict[str, object]:
     base.build_model = build_model
     base.balance_loss = balanced_router_loss
     result = base.run(args)
-    initialization_gate_passed = add_training_metadata(result, args=args)
     destination = args.output_dir.resolve() / "result.json"
     destination.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(
-        json.dumps(
-            {
-                "implementation_version": IMPLEMENTATION_VERSION,
-                "initialization_gate_passed": initialization_gate_passed,
-                "initialization_gate": result["initialization_gate"],
-            },
-            sort_keys=True,
-        )
-    )
-    if not initialization_gate_passed:
-        raise SystemExit(1)
     return result

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import os
 import sys
 from dataclasses import dataclass
@@ -11,7 +10,6 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 import numpy as np
-import sklearn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from experiments.common.numerics import add_torch_device_argument, ensure_output_dir, ensure_subdir, resolve_torch_device, write_csv
+from experiments.common.numerics import add_torch_device_argument, ensure_subdir, resolve_torch_device, write_csv
 
 
 torch.set_num_threads(1)
@@ -93,11 +91,10 @@ class DigitsMoE(nn.Module):
         return prediction, probabilities
 
 
-def load_data() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, str]:
+def load_data() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     bundle = load_digits()
     features = np.asarray(bundle.data, dtype=np.float32) / 16.0
     labels = np.asarray(bundle.target, dtype=np.int64)
-    digest = hashlib.sha256(features.tobytes() + labels.tobytes()).hexdigest()
     train_x, test_x, train_y, test_y = train_test_split(
         features,
         labels,
@@ -110,7 +107,6 @@ def load_data() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor,
         torch.from_numpy(train_y),
         torch.from_numpy(test_x),
         torch.from_numpy(test_y),
-        digest,
     )
 
 
@@ -225,11 +221,9 @@ def aggregate(records: list[dict[str, object]], mode: Mode) -> dict[str, object]
     return result
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="CPU-scale top-2 MoE routing audit on sklearn digits."
+        description="CPU-scale top-2 MoE routing comparison on sklearn digits."
     )
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
     parser.add_argument("--epochs", type=int, default=40)
@@ -244,7 +238,7 @@ def main() -> None:
     device = resolve_torch_device(args.device)
     print(f"device={device}")
 
-    train_x, train_y, test_x, test_y, dataset_sha256 = load_data()
+    train_x, train_y, test_x, test_y = load_data()
     records: list[dict[str, object]] = []
     for mode in MODES:
         for seed in args.seeds:
@@ -316,36 +310,6 @@ def main() -> None:
         load_rows,
     )
 
-    manifest = ensure_output_dir() / "digits_moe_validation_manifest.txt"
-    manifest.write_text(
-        "\n".join(
-            [
-                "dataset=scikit-learn load_digits built-in 8x8 handwritten digits",
-                "dataset_source=https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_digits.html",
-                f"dataset_sha256_float32_normalized={dataset_sha256}",
-                "split=stratified 75/25",
-                "split_seed=20260717",
-                f"train_count={train_y.numel()}",
-                f"test_count={test_y.numel()}",
-                f"seeds={','.join(str(seed) for seed in args.seeds)}",
-                f"epochs={args.epochs}",
-                f"batch_size={args.batch_size}",
-                f"learning_rate={args.learning_rate}",
-                f"weight_decay={args.weight_decay}",
-                f"width={args.width}",
-                f"num_experts={args.num_experts}",
-                f"expert_hidden={args.expert_hidden}",
-                "router=global top-2 or input-conditioned top-2",
-                "optimizer=AdamW",
-                f"device={device}",
-                f"python={sys.version.split()[0]}",
-                f"torch={torch.__version__}",
-                f"numpy={np.__version__}",
-                f"scikit_learn={sklearn.__version__}",
-            ]
-        )
-        + "\n"
-    )
 
     for record in aggregates:
         print(

@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""Historical summaries of encoded persistent router recovery.
+"""Summarize encoded recovery times and paired seed contrasts.
 
-The 1088 non-recovery code exceeds the 1024-step observation window.
-Outputs retain historical names for provenance and do not identify survival
-beyond follow-up; see analyze_recovery_endpoint_sensitivity.py.
-Kaplan--Meier curves are descriptive at the seed-layer-mass cell level. The
-paired restricted-mean contrasts and bootstrap intervals use the seed as the
-resampling and inferential unit, matching the experiment protocol.
-"""
+The historical non-recovery marker is 1,088 for a 1,024-step follow-up.
+Use analyze_confirmed_recovery for confirmation-time RMST."""
 
 from __future__ import annotations
 

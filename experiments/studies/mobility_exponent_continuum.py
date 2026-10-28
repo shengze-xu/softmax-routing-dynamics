@@ -1,26 +1,16 @@
 #!/usr/bin/env python3
-"""Controlled softmax flows for the conditional mobility-exponent law.
+"""Integrate constructed softmax fields with Gamma=x**alpha.
 
-This is a constructed score field, not a fitted neural model or a fixed-expert
-square-loss experiment. A uniform complementary face has kappa=1+1/(n-1).
-Choosing g_0=-x**(alpha-1)/kappa and all other scores zero gives Gamma=x**alpha.
-For alpha<1 these scores are unbounded as x tends to zero. The construction
-checks the coefficient-conditional corollary, not bounded-gap realizability.
-
-Integrate all logits in desingularized time ds=x**alpha dt, with a separate
-clock tau=epsilon**alpha*t. This avoids work proportional to epsilon**(-alpha).
-Compare event times with independent quadrature, and halve max_step in s.
-"""
+Use desingularized logit time and compare hitting times with quadrature.
+For alpha<1, the constructed scores are unbounded near zero."""
 from __future__ import annotations
 
 import argparse
 import csv
 import json
-import platform
 from pathlib import Path
 
 import numpy as np
-import scipy
 from scipy.integrate import quad, solve_ivp
 from scipy.special import softmax
 
@@ -108,13 +98,13 @@ def main() -> None:
     keyed = {(r['n_experts'],r['alpha'],r['epsilon'],r['max_step_s']):r for r in rows}
     refinement = max(abs(r['observed_time']-keyed[(r['n_experts'],r['alpha'],r['epsilon'],0.5)]['observed_time'])/r['observed_time']
                      for r in rows if r['max_step_s'] == 0.25)
-    summary = dict(experiment="controlled coefficient construction", python=platform.python_version(), numpy=np.__version__, scipy=scipy.__version__,
+    summary = dict(experiment="controlled coefficient construction",
                    trajectories=len(rows), maximum_relative_time_error=max(r['relative_time_error'] for r in rows),
                    maximum_relative_refinement_change=refinement,
                    score_scope="g0=-x^(alpha-1)/(1+1/(n-1)); unbounded at zero for alpha<1; not fixed square loss",
                    solver="DOP853 in ds=x^alpha dt; rtol=1e-11, atol=1e-13; max_step=0.5,0.25",
                    fit_window="Both fixed descriptive windows [1e-12,1e-6] and [1e-12,1e-9] are reported; main figure uses the latter.")
-    (args.output_dir/'mobility_exponent_manifest.txt').write_text(json.dumps(summary, indent=2)+'\n')
+    (args.output_dir/'mobility_exponent_summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     print(json.dumps(summary, indent=2))
     for fit in fits:
         if fit['n_experts'] == 4 and fit['epsilon_max'] == 1e-9:

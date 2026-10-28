@@ -3,9 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 
@@ -46,28 +44,6 @@ def softmax(q: Array) -> Array:
     return exps / np.sum(exps)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def ensure_output_dir() -> Path:
     out = Path(os.environ.get("MOE_OUTPUT_DIR", "outputs")).expanduser()
     if not out.is_absolute():
@@ -80,16 +56,6 @@ def ensure_subdir(name: str) -> Path:
     path = ensure_output_dir() / name
     path.mkdir(exist_ok=True)
     return path
-
-
-
-
-
-
-
-
-
-
 
 
 def write_csv(path: Path, header: list[str], rows: list[list[object]]) -> None:

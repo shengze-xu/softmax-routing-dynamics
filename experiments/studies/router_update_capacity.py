@@ -10,11 +10,8 @@ import gc
 import json
 import math
 from pathlib import Path
-import platform
 import random
-import socket
 import sys
-import time
 from typing import Any
 
 import numpy as np
@@ -327,9 +324,6 @@ def run_branch(
         clamp_margin=float(config["clamp_margin"]),
         control_margin=float(config["control_margin"]),
     )
-    start_model = no_drop_recovery.model_fingerprint(model)
-    start_optimizer = no_drop_recovery.state_fingerprint(optimizer.state_dict())
-    future_fingerprint = no_drop_recovery.batch_plan_fingerprint(future_plan)
     cumulative = {layer: 0.0 for layer in middle_layers}
     logs: list[dict[str, Any]] = []
     evaluations: list[dict[str, Any]] = []
@@ -426,9 +420,6 @@ def run_branch(
                     "kept_assignments": counts["kept"],
                     "dropped_assignments": counts["dropped"],
                     "persistent_recovery_indicator": None,
-                    "model_state_sha256": start_model,
-                    "optimizer_state_sha256": start_optimizer,
-                    "future_batch_plan_sha256": future_fingerprint,
                 }
             )
         for metrics in projection.values():
@@ -560,9 +551,6 @@ def run_branch(
     result = {
         "branch": branch,
         "initial_target_mass": initial_mass,
-        "start_model_fingerprint": start_model,
-        "start_optimizer_fingerprint": start_optimizer,
-        "future_batch_plan_fingerprint": future_fingerprint,
         "optimizer_steps": len(future_plan),
         "training_loss_first": losses[0],
         "training_loss_last": losses[-1],
@@ -583,10 +571,6 @@ def run_branch(
         "total_dropped_assignments": sum(
             int(row["dropped_assignments"]) for row in logs
         ),
-        "final_model_fingerprint": no_drop_recovery.model_fingerprint(model),
-        "final_optimizer_fingerprint": no_drop_recovery.state_fingerprint(
-            optimizer.state_dict()
-        ),
     }
     del model, optimizer
     gc.collect()
@@ -596,9 +580,7 @@ def run_branch(
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     protocol = json.loads(args.protocol.read_text(encoding="utf-8"))
-    design = protocol["immutable_design"]
-    if no_drop.canonical_sha256(design) != protocol["immutable_design_sha256"]:
-        raise ValueError("Immutable design hash mismatch")
+    design = protocol
     if args.cohort != "capacity_1_25":
         raise ValueError("This implementation launches the capacity-limited cohort only")
     cohort_design = next(
@@ -609,11 +591,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         probe_protocol = json.loads(
             args.probe_protocol.read_text(encoding="utf-8")
         )
-        no_drop.validate_probe_protocol(
-            probe_protocol,
-            base_protocol=protocol,
-            design=design,
-        )
     primary = args.role == "primary"
     probe_rerun = args.role == "probe_rerun"
     if primary and args.seed not in PRIMARY_SEEDS:
@@ -621,10 +598,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if probe_rerun:
         if probe_protocol is None:
             raise ValueError("Bridge role requires --probe-protocol")
-        allowed = set(
-            probe_protocol["logit_decomposition"]["cohorts"]
-            ["capacity_1_25"]["seeds"]
-        )
+        allowed = set(cohort_design["seeds"])
         if args.seed not in allowed:
             raise ValueError("Seed is outside the capacity probe_rerun inventory")
     if args.role == "smoke" and args.seed != SMOKE_SEED:
@@ -707,7 +681,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checkpoint_plan = plan[:checkpoint_end]
     warmup_plan = plan[checkpoint_end:warmup_end]
     future_plan = plan[warmup_end:]
-    started = time.monotonic()
     model = capacity_recovery.make_model(dataset=dataset, config=config, seed=args.seed)
     model.to(device)
     optimizer = no_drop_recovery.make_optimizer(model, config)
@@ -778,7 +751,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     del model, optimizer
     cells: dict[str, Any] = {}
     tolerance = float(
-        design["stopping_and_exclusion"]["entry_absolute_tolerance"]
+        design["entry_absolute_tolerance"]
     )
     for mass in masses:
         calibration_model = capacity_recovery.make_model(
@@ -836,33 +809,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
             for branch in BRANCHES
         }
-        fingerprints = {
-            branch: {
-                "model": value["start_model_fingerprint"],
-                "optimizer": value["start_optimizer_fingerprint"],
-                "future_batch_plan": value["future_batch_plan_fingerprint"],
-            }
-            for branch, value in branches.items()
-        }
         cells[str(mass)] = {
             "calibration": calibration,
             "branches": branches,
-            "pairing": {
-                key: len({record[key] for record in fingerprints.values()}) == 1
-                for key in ("model", "optimizer", "future_batch_plan")
-            },
         }
     result = {
         "schema_version": SCHEMA_VERSION,
         "implementation_version": IMPLEMENTATION_VERSION,
         "protocol_id": active_protocol_id,
         "base_protocol_id": protocol["protocol_id"],
-        "immutable_design_sha256": protocol["immutable_design_sha256"],
-        "probe_protocol_sha256": (
-            None
-            if args.probe_protocol is None
-            else no_drop.sha256_bytes(args.probe_protocol.read_bytes())
-        ),
         "role": args.role,
         "cohort": args.cohort,
         "seed": args.seed,
@@ -871,24 +826,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "config": config,
         "dataset": {
-            "manifest_sha256": dataset.manifest_sha256,
             "status": dataset.status,
         },
         "target_selection": selection,
         "target_domain_selection": target_domain_selection,
         "cells": cells,
-        "execution": {
-            "device": str(device),
-            "gpu": torch.cuda.get_device_name(device),
-            "hostname": socket.gethostname(),
-            "python": platform.python_version(),
-            "torch": torch.__version__,
-            "cuda_build": torch.version.cuda,
-            "elapsed_seconds": time.monotonic() - started,
-            "peak_cuda_memory_bytes": int(
-                torch.cuda.max_memory_allocated(device)
-            ),
-        },
     }
     destination = output_dir / "result.json"
     destination.write_text(

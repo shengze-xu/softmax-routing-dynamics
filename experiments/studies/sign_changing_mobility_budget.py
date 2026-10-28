@@ -171,8 +171,6 @@ def simulate(
     return result, trajectory
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Integrate sign-changing recovery gaps for three simplex mobilities.")
     parser.add_argument("--epsilon", type=float, default=0.08)
@@ -238,7 +236,6 @@ def main() -> None:
     print(f"sign-changing crossing gates = {len(rows)}/{len(rows)}")
     print(f"maximum budget identity error = {max(float(row['max_budget_identity_error']) for row in rows):.6e}")
     print(f"recovery outcomes = {sum(bool(row['observed_recovery']) for row in rows)}/{len(rows)}")
-
 
 
 if __name__ == "__main__":

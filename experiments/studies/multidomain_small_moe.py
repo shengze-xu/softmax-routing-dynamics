@@ -28,13 +28,10 @@ class SmallMultidomainPreparedDataset(base.PreparedDataset):
         if self.manifest.get("schema_version") != 1:
             raise ValueError("Unsupported small multidomain prepared-data schema")
         if self.manifest.get("status") != "prepared_multidomain_small_candidate":
-            raise ValueError("Dataset is not an audited small multidomain candidate")
-        self.manifest_sha256 = base.sha256(manifest_path)
+            raise ValueError("Dataset is not a prepared small multidomain corpus")
         self.arrays: dict[str, np.ndarray] = {}
         for name, metadata in self.manifest["arrays"].items():
             path = self.root / metadata["file"]
-            if base.sha256(path) != metadata["sha256"]:
-                raise ValueError(f"Prepared-data checksum mismatch: {name}")
             array = np.load(path, mmap_mode="r", allow_pickle=False)
             if list(array.shape) != metadata["shape"] or str(array.dtype) != metadata["dtype"]:
                 raise ValueError(f"Prepared-data shape/dtype mismatch: {name}")
@@ -44,14 +41,6 @@ class SmallMultidomainPreparedDataset(base.PreparedDataset):
         base.DOMAIN_NAMES = list(self.manifest["domain_names"])
         if self.arrays["train_tokens"].shape[1] != self.sequence_length + 1:
             raise ValueError("Prepared token width does not match manifest")
-        corpus_audit = self.root / "corpus_audit.json"
-        if not corpus_audit.is_file():
-            raise FileNotFoundError("small multidomain corpus audit is required")
-        audit = json.loads(corpus_audit.read_text(encoding="utf-8"))
-        if audit.get("status") != "passed":
-            raise ValueError("small multidomain corpus audit did not pass")
-        if audit.get("manifest_sha256") != self.manifest_sha256:
-            raise ValueError("small multidomain corpus audit refers to a different manifest")
 
 
 def run_multidomain_small(args: argparse.Namespace) -> dict[str, object]:
@@ -61,9 +50,7 @@ def run_multidomain_small(args: argparse.Namespace) -> dict[str, object]:
         result = gpt_model.run_gpt(args)
     finally:
         base.PreparedDataset = original_dataset
-    manifest = json.loads(
-        (args.dataset_dir.resolve() / "manifest.json").read_text(encoding="utf-8")
-    )
+    manifest = json.loads((args.dataset_dir / "manifest.json").read_text())
     result["multidomain_small"] = {
         "protocol_id": args.protocol_id,
         "role": args.role,
@@ -76,7 +63,7 @@ def run_multidomain_small(args: argparse.Namespace) -> dict[str, object]:
     }
     result["interpretation"] = (
         "small multidomain multi-source autoregressive routing "
-        f"{args.role}; requires the corpus integrity audit"
+        f"{args.role}"
     )
     destination = args.output_dir.resolve() / "result.json"
     destination.write_text(

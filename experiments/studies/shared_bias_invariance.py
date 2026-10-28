@@ -88,8 +88,6 @@ def run_case(seed: int, bias_scale: float, regimes: int, experts: int) -> dict[s
     }
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check shared-bias log-odds invariance and probability-space changes.")
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
@@ -143,7 +141,6 @@ def main() -> None:
         f"{max(float(row['aggregate_load_l1_change']) for row in rows):.6f}]"
     )
     print(f"top-2 support changes = {sum(int(row['top2_changed_regimes']) for row in rows)}")
-
 
 
 if __name__ == "__main__":

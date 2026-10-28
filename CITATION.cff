@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "Please cite the article represented by this repository."
+title: "Softmax Routing Dynamics in Mixture-of-Experts Models: Collapse and Recovery"
+type: software
+repository-code: "https://github.com/shengze-xu/softmax-routing-dynamics"
+authors:
+  - family-names: "Xu"
+    given-names: "Shengze"
+    affiliation: "The Chinese University of Hong Kong"
+  - family-names: "Deng"
+    given-names: "Maolin"
+    affiliation: "The Chinese University of Hong Kong"
+  - family-names: "Zeng"
+    given-names: "Tieyong"
+    email: "tieyongzeng@bnbu.edu.cn"
+    affiliation: "Beijing Normal-Hong Kong Baptist University; Guangzhou Nanfang College"
+preferred-citation:
+  type: article
+  title: "Softmax Routing Dynamics in Mixture-of-Experts Models: Collapse and Recovery"
+  authors:
+    - family-names: "Xu"
+      given-names: "Shengze"
+      affiliation: "The Chinese University of Hong Kong"
+    - family-names: "Deng"
+      given-names: "Maolin"
+      affiliation: "The Chinese University of Hong Kong"
+    - family-names: "Zeng"
+      given-names: "Tieyong"
+      email: "tieyongzeng@bnbu.edu.cn"
+      affiliation: "Beijing Normal-Hong Kong Baptist University; Guangzhou Nanfang College"
+  year: 2026

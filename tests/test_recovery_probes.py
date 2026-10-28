@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""CPU tests for the content-strengthening experiment utilities."""
+"""CPU checks for fixed-token router logit decomposition."""
 
 from __future__ import annotations
 
-import json
-import os
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -12,14 +10,13 @@ import unittest
 
 import torch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from experiments.analysis import analyze_recovery_survival as survival
 from experiments.studies import agnews_structure_comparison as agnews_model
 from experiments.models import agnews_no_drop_recovery as no_drop_recovery
-from experiments.studies import router_update_no_drop as mechanism
 from experiments.common import router_logit_decomposition as decomposition
 
 
@@ -213,29 +210,6 @@ class SurvivalAnalysisTests(unittest.TestCase):
             20.0,
         )
         self.assertEqual(summary["inferential_unit"], "seed")
-
-
-class ProtocolTests(unittest.TestCase):
-    def test_recovery_probes_matches_base_design(self) -> None:
-        base_path = Path(
-            os.environ.get(
-                "MOE_BASE_PROTOCOL_PATH",
-                ROOT
-                / "experiments/protocols/router_update_design.json",
-            )
-        )
-        base = json.loads(
-            base_path.read_text(encoding="utf-8")
-        )
-        additional = json.loads(
-            (ROOT / "experiments/protocols/recovery_probe_design.json")
-            .read_text(encoding="utf-8")
-        )
-        mechanism.validate_probe_protocol(
-            additional,
-            base_protocol=base,
-            design=base["immutable_design"],
-        )
 
 
 if __name__ == "__main__":

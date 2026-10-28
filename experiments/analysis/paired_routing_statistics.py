@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from experiments.common.numerics import ensure_subdir, write_csv
+from experiments.common.numerics import write_csv
 
 
 @dataclass(frozen=True)
@@ -193,7 +193,7 @@ def holm_adjust(p_values: list[float]) -> list[float]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Paired statistical audit.")
+    parser = argparse.ArgumentParser(description="Paired routing comparisons.")
     parser.add_argument("--input-dir",type=Path,required=True)
     parser.add_argument("--output-dir",type=Path,required=True)
     args=parser.parse_args()

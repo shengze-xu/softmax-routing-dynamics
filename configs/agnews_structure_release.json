@@ -162,9 +162,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -184,9 +182,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -206,9 +202,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -228,9 +222,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -250,9 +242,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -272,9 +262,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -294,9 +282,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -316,9 +302,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "f37ac49c23709718753de4dfa58df7b5ca0fc6d6fa08176bc7ffaef60e4dc4bb"
+        "primary"
       ]
     },
     {
@@ -338,9 +322,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -360,9 +342,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -382,9 +362,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -404,9 +382,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -426,9 +402,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -448,9 +422,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -470,9 +442,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     },
     {
@@ -492,9 +462,7 @@
         "--device",
         "cuda",
         "--role",
-        "primary",
-        "--protocol-sha256",
-        "214a4133376871999dfff0ab5faef20ac6895b56ed1a26c830dc3b09c3d1cdea"
+        "primary"
       ]
     }
   ]

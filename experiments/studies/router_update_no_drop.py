@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Direct neural validation of router-update recovery mechanisms.
+"""Direct neural experiments for router-update recovery mechanisms.
 
-The implementation follows the immutable design in
-``router_update_design.json``.  A common checkpoint is
-suppressed to four prescribed target masses and forked into free-release,
-maintained-clamp, and zero-advantage-gradient branches.  Router gradients and
-realized AdamW parameter updates are measured directly on every optimizer
-step.  The smoke role exercises the complete three-branch logging path; the
-primary role is admitted by the frozen protocol hash and seed inventory.
+A shared checkpoint is suppressed to four target masses and forked into
+free-release, maintained-clamp, and zero-advantage-gradient branches.
+Router gradients and realized AdamW updates are measured at each step.
+Model and intervention settings are read from the supplied JSON design.
 """
 
 from __future__ import annotations
@@ -17,15 +14,11 @@ import copy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import gc
-import hashlib
 import json
 import math
 from pathlib import Path
-import platform
 import random
-import socket
 import sys
-import time
 from typing import Any
 
 import numpy as np
@@ -67,21 +60,6 @@ class RouterUpdate:
     realized_comparator_logit_update: float
     realized_logodds_update_advantage: float
     realized_update_identity_error: float
-
-
-def sha256_bytes(value: bytes) -> str:
-    return hashlib.sha256(value).hexdigest()
-
-
-def canonical_sha256(value: object) -> str:
-    return sha256_bytes(
-        json.dumps(
-            value,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=True,
-        ).encode("utf-8")
-    )
 
 
 def make_balanced_batch_plan(
@@ -308,25 +286,6 @@ def calibrate_initial_mass(
     if any(error > tolerance for error in errors.values()):
         raise ValueError(f"Initial-mass calibration failed: {errors}")
     return {"diagnostic": diag, "absolute_error_by_layer": errors}
-
-
-def router_biases(
-    model: agnews_model.IndependentAutoregressiveMoE,
-    *,
-    target_by_layer: list[int],
-    comparator_by_layer: list[int],
-    middle_layers: list[int],
-) -> dict[int, tuple[float, float]]:
-    values: dict[int, tuple[float, float]] = {}
-    for layer in middle_layers:
-        router = model.layers[layer].moe.router
-        if router is None or router.bias is None:
-            raise ValueError("Mechanism logging requires affine router biases")
-        values[layer] = (
-            float(router.bias[int(target_by_layer[layer])].detach().item()),
-            float(router.bias[int(comparator_by_layer[layer])].detach().item()),
-        )
-    return values
 
 
 def router_parameters(
@@ -674,9 +633,6 @@ def run_mechanism_branch(
         clamp_margin=float(config["clamp_margin"]),
         control_margin=float(config["control_margin"]),
     )
-    start_model = no_drop_recovery.model_fingerprint(model)
-    start_optimizer = no_drop_recovery.state_fingerprint(optimizer.state_dict())
-    future_fingerprint = no_drop_recovery.batch_plan_fingerprint(future_plan)
     cumulative = {layer: 0.0 for layer in middle_layers}
     logs: list[dict[str, Any]] = []
     evaluations: list[dict[str, Any]] = []
@@ -786,9 +742,6 @@ def run_mechanism_branch(
                     "kept_assignments": None,
                     "dropped_assignments": 0,
                     "persistent_recovery_indicator": None,
-                    "model_state_sha256": start_model,
-                    "optimizer_state_sha256": start_optimizer,
-                    "future_batch_plan_sha256": future_fingerprint,
                 }
             )
         for metrics in projection.values():
@@ -927,11 +880,6 @@ def run_mechanism_branch(
     result = {
         "branch": branch,
         "initial_target_mass": initial_mass,
-        "start_model_fingerprint": start_model,
-        "start_optimizer_fingerprint": start_optimizer,
-        "future_batch_plan_fingerprint": no_drop_recovery.batch_plan_fingerprint(
-            future_plan
-        ),
         "optimizer_steps": len(future_plan),
         "training_loss_first": losses[0],
         "training_loss_last": losses[-1],
@@ -949,10 +897,6 @@ def run_mechanism_branch(
                 "path": probe_output_path.name,
             }
         ),
-        "final_model_fingerprint": no_drop_recovery.model_fingerprint(model),
-        "final_optimizer_fingerprint": no_drop_recovery.state_fingerprint(
-            optimizer.state_dict()
-        ),
     }
     del model, optimizer
     gc.collect()
@@ -969,9 +913,9 @@ def _config_from_design(
     base = {
         "batch_plan_seed_offset": 9500,
         "batch_size": 4,
-        "checkpoint_steps": int(design["model_and_data_lock"]["checkpoint_steps"]),
+        "checkpoint_steps": int(design["model"]["checkpoint_steps"]),
         "warmup_steps": 1024,
-        "horizon_steps": int(design["model_and_data_lock"]["post_fork_steps"]),
+        "horizon_steps": int(design["model"]["post_fork_steps"]),
         "clamp_margin": 3.0,
         "control_margin": -1.0,
         "d_model": 384,
@@ -979,23 +923,23 @@ def _config_from_design(
         "entry_traffic_ceiling": 0.01,
         "eval_batch_size": 2,
         "eval_interval": int(
-            design["model_and_data_lock"]["evaluation_interval_steps"]
+            design["model"]["evaluation_interval_steps"]
         ),
         "expected_dataset_status": "prepared_agnews_candidate",
         "expert_hidden": 768,
         "learning_rate": 0.0002,
         "limit_evaluation": 512,
         "limit_train": 119800,
-        "middle_layers": list(design["model_and_data_lock"]["middle_layers_zero_based"]),
+        "middle_layers": list(design["model"]["middle_layers_zero_based"]),
         "num_experts": 8,
         "num_heads": 6,
         "num_layers": 6,
         "precision": "bf16",
         "recovery_persistence": int(
-            design["model_and_data_lock"]["persistent_evaluations"]
+            design["model"]["persistent_evaluations"]
         ),
         "recovery_probability_threshold": float(
-            design["model_and_data_lock"]["target_probability_threshold"]
+            design["model"]["target_probability_threshold"]
         ),
         "target_eligibility_threshold": 0.05,
         "top_k": 2,
@@ -1027,66 +971,9 @@ def _config_from_design(
     return base
 
 
-def validate_probe_protocol(
-    additional: dict[str, Any],
-    *,
-    base_protocol: dict[str, Any],
-    design: dict[str, Any],
-) -> None:
-    if additional["base_protocol_id"] != base_protocol["protocol_id"]:
-        raise ValueError("Additional protocol cites a different base protocol")
-    if (
-        additional["base_immutable_design_sha256"]
-        != base_protocol["immutable_design_sha256"]
-    ):
-        raise ValueError("Additional protocol cites a different design hash")
-    no_drop_design = next(
-        item for item in design["cohorts"] if item["cohort"] == "no_drop"
-    )
-    capacity_design = next(
-        item
-        for item in design["cohorts"]
-        if item["cohort"] == "capacity_1_25"
-    )
-    seed_extension = additional["additional_no_drop_seeds"]
-    new_seeds = list(map(int, seed_extension["seeds"]))
-    if len(new_seeds) != len(set(new_seeds)) or set(new_seeds) & set(
-        no_drop_design["seeds"]
-    ):
-        raise ValueError("No-drop additional seeds are duplicated or nonindependent")
-    if seed_extension["initial_mass_targets"] != no_drop_design[
-        "initial_mass_targets"
-    ]:
-        raise ValueError("No-drop additional changed the mass inventory")
-    if seed_extension["branches"] != no_drop_design["branches"]:
-        raise ValueError("No-drop additional changed the branch inventory")
-    probe = additional["logit_decomposition"]
-    if int(probe["tokens_per_layer"]) <= 0 or int(
-        probe["smoke_tokens_per_layer"]
-    ) <= 0:
-        raise ValueError("Probe token inventories must be positive")
-    model_lock = design["model_and_data_lock"]
-    if int(probe["evaluation_interval_steps"]) != int(
-        model_lock["evaluation_interval_steps"]
-    ):
-        raise ValueError("Logit decomposition changed the evaluation interval")
-    if float(probe["target_probability_threshold"]) != float(
-        model_lock["target_probability_threshold"]
-    ):
-        raise ValueError("Logit decomposition changed the recovery threshold")
-    if list(probe["cohorts"]["no_drop"]["seeds"]) != new_seeds:
-        raise ValueError("No-drop probe and additional seed inventories differ")
-    if list(probe["cohorts"]["capacity_1_25"]["seeds"]) != list(
-        capacity_design["seeds"]
-    ):
-        raise ValueError("Capacity probe changed the completed seed inventory")
-
-
 def run(args: argparse.Namespace) -> dict[str, Any]:
     protocol = json.loads(args.protocol.read_text(encoding="utf-8"))
-    design = protocol["immutable_design"]
-    if canonical_sha256(design) != protocol["immutable_design_sha256"]:
-        raise ValueError("Immutable design hash mismatch")
+    design = protocol
     if args.cohort != "no_drop":
         raise ValueError("This implementation launches the no-drop cohort only")
     cohort_design = next(
@@ -1097,11 +984,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         probe_protocol = json.loads(
             args.probe_protocol.read_text(encoding="utf-8")
         )
-        validate_probe_protocol(
-            probe_protocol,
-            base_protocol=protocol,
-            design=design,
-        )
     primary = args.role == "primary"
     additional = args.role == "additional"
     if primary and args.seed not in PRIMARY_NO_DROP_SEEDS:
@@ -1109,7 +991,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if additional:
         if probe_protocol is None:
             raise ValueError("Additional role requires --probe-protocol")
-        allowed = set(probe_protocol["additional_no_drop_seeds"]["seeds"])
+        allowed = set(probe_protocol["additional_no_drop_seeds"])
         if args.seed not in allowed:
             raise ValueError("Seed is outside the no-drop additional inventory")
     if args.role == "smoke" and args.seed != SMOKE_SEED:
@@ -1187,7 +1069,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checkpoint_plan = plan[:checkpoint_end]
     warmup_plan = plan[checkpoint_end:warmup_end]
     future_plan = plan[warmup_end:]
-    started = time.monotonic()
     model = no_drop_recovery.make_model(dataset=dataset, config=config, seed=args.seed)
     model.to(device)
     optimizer = no_drop_recovery.make_optimizer(model, config)
@@ -1258,7 +1139,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     del model, optimizer
     cells: dict[str, Any] = {}
     tolerance = float(
-        design["stopping_and_exclusion"]["entry_absolute_tolerance"]
+        design["entry_absolute_tolerance"]
     )
     for mass in masses:
         calibration_model = no_drop_recovery.make_model(
@@ -1317,33 +1198,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             )
             for branch in BRANCHES
         }
-        fingerprints = {
-            branch: {
-                "model": value["start_model_fingerprint"],
-                "optimizer": value["start_optimizer_fingerprint"],
-                "future_batch_plan": value["future_batch_plan_fingerprint"],
-            }
-            for branch, value in branches.items()
-        }
         cells[str(mass)] = {
             "calibration": calibration,
             "branches": branches,
-            "pairing": {
-                key: len({record[key] for record in fingerprints.values()}) == 1
-                for key in ("model", "optimizer", "future_batch_plan")
-            },
         }
     result = {
         "schema_version": SCHEMA_VERSION,
         "implementation_version": IMPLEMENTATION_VERSION,
         "protocol_id": active_protocol_id,
         "base_protocol_id": protocol["protocol_id"],
-        "immutable_design_sha256": protocol["immutable_design_sha256"],
-        "probe_protocol_sha256": (
-            None
-            if args.probe_protocol is None
-            else sha256_bytes(args.probe_protocol.read_bytes())
-        ),
         "role": args.role,
         "cohort": args.cohort,
         "seed": args.seed,
@@ -1352,22 +1215,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "config": config,
         "dataset": {
-            "manifest_sha256": dataset.manifest_sha256,
             "status": dataset.status,
         },
         "target_selection": selection,
         "target_domain_selection": target_domain_selection,
         "cells": cells,
-        "execution": {
-            "device": str(device),
-            "gpu": torch.cuda.get_device_name(device),
-            "hostname": socket.gethostname(),
-            "python": platform.python_version(),
-            "torch": torch.__version__,
-            "cuda_build": torch.version.cuda,
-            "elapsed_seconds": time.monotonic() - started,
-            "peak_cuda_memory_bytes": int(torch.cuda.max_memory_allocated(device)),
-        },
     }
     destination = output_dir / "result.json"
     destination.write_text(

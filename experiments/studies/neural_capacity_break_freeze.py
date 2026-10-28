@@ -213,8 +213,6 @@ def classify_result(retention: float, mse_ratio: float, unique_dominant_experts_
     return "diagnostic"
 
 
-
-
 def run_study(
     *,
     pre_shift_epochs: int,
@@ -426,7 +424,6 @@ def run_study(
         ],
         regime_rows,
     )
-
 
 
 def main() -> None:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Many-initialization basin audit for the canonical three-expert geometry."""
+"""Many-initialization basin experiment for the canonical three-expert geometry."""
 
 from __future__ import annotations
 

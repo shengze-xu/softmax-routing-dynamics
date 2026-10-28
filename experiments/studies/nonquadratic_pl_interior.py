@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Nonquadratic PL residual-loss audit for exact joint router/expert flow."""
+"""Nonquadratic PL residual-loss experiment for exact joint router/expert flow."""
 
 from __future__ import annotations
 
@@ -178,8 +178,6 @@ def simulate(
     return result, state
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit the PL residual theorem with a smooth nonquadratic loss.")
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(5)))
@@ -275,7 +273,6 @@ def main() -> None:
     print(f"maximum gradient-area fraction = {max(float(row['gradient_area_fraction']) for row in finest):.6f}")
     print(f"minimum routing probability = {min(float(row['minimum_probability']) for row in finest):.6e}")
     print(f"maximum coarse-to-fine routing error = {max(float(row['final_p_refinement_error']) for row in rows):.6e}")
-
 
 
 if __name__ == "__main__":

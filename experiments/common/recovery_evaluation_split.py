@@ -3,7 +3,6 @@
 Selection retains the original per-class prefix. Recovery uses the subsequent
 rows, with original dataset row IDs recorded for reproducibility.
 """
-import hashlib
 import numpy as np
 import torch
 
@@ -30,7 +29,5 @@ def validation_sets(dataset, count):
                      for field in ('tokens','lengths','domains'))
     metadata=dict(design='disjoint_selection_and_recovery_v1',
         selection_count=count, recovery_count=count, overlap_count=0,
-        selection_row_ids=selection.tolist(), recovery_row_ids=recovery.tolist(),
-        selection_index_sha256=hashlib.sha256(selection.astype('<i8').tobytes()).hexdigest(),
-        recovery_index_sha256=hashlib.sha256(recovery.astype('<i8').tobytes()).hexdigest())
+        selection_row_ids=selection.tolist(), recovery_row_ids=recovery.tolist())
     return materialize(selection),materialize(recovery),metadata

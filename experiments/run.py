@@ -17,46 +17,45 @@ ROOT = Path(__file__).resolve().parents[1]
 @dataclass(frozen=True)
 class Study:
     name: str
-    module: str
     suite: str
     device: bool = False
     output_argument: bool = False
 
 
 STUDIES = (
-    Study('exact_joint_gradient_interior', 'exact_joint_gradient_interior', 'numerical'),
-    Study('timescale_closure', 'timescale_closure', 'numerical'),
-    Study('face_energy_barrier', 'face_energy_barrier', 'numerical'),
-    Study('sign_changing_mobility_budget', 'sign_changing_mobility_budget', 'numerical'),
-    Study('nonquadratic_pl_interior', 'nonquadratic_pl_interior', 'numerical'),
-    Study('shared_bias_invariance', 'shared_bias_invariance', 'numerical'),
-    Study('multiexpert_face_mobility', 'multiexpert_face_mobility', 'numerical'),
-    Study('feature_escape_slope', 'feature_escape_slope', 'numerical'),
-    Study('face_basin_map', 'face_basin_map', 'numerical'),
-    Study('mobility_exponent_continuum', 'mobility_exponent_continuum', 'numerical', output_argument=True),
-    Study('input_dependent_break_freeze', 'input_dependent_break_freeze', 'neural', device=True),
-    Study('shared_global_load_balancing', 'shared_global_load_balancing', 'neural', device=True),
-    Study('shared_global_topk', 'shared_global_topk', 'neural', device=True),
-    Study('neural_capacity_break_freeze', 'neural_capacity_break_freeze', 'neural', device=True),
-    Study('architecture_level_moe_check', 'architecture_level_moe_check', 'neural', device=True),
-    Study('transformer_moe_agnews', 'transformer_moe_agnews', 'neural', device=True),
-    Study('agnews_compute_matched_dense', 'agnews_compute_matched_dense', 'neural', device=True),
-    Study('digits_moe_validation', 'digits_moe_validation', 'neural', device=True),
-    Study('uci_har_moe_validation', 'uci_har_moe_validation', 'neural', device=True),
-    Study('multidomain_small_moe', 'multidomain_small_moe', 'protocol'),
-    Study('multidomain_controlled_moe', 'multidomain_controlled_moe', 'protocol'),
-    Study('multidomain_capacity_robustness', 'multidomain_capacity_robustness', 'protocol'),
-    Study('agnews_structure_comparison', 'agnews_structure_comparison', 'protocol'),
-    Study('agnews_no_drop_clamp_release', 'agnews_no_drop_clamp_release', 'protocol'),
-    Study('agnews_capacity_clamp_release', 'agnews_capacity_clamp_release', 'protocol'),
-    Study('router_update_no_drop', 'router_update_no_drop', 'protocol'),
-    Study('router_update_capacity', 'router_update_capacity', 'protocol'),
+    Study('exact_joint_gradient_interior', 'numerical'),
+    Study('timescale_closure', 'numerical'),
+    Study('face_energy_barrier', 'numerical'),
+    Study('sign_changing_mobility_budget', 'numerical'),
+    Study('nonquadratic_pl_interior', 'numerical'),
+    Study('shared_bias_invariance', 'numerical'),
+    Study('multiexpert_face_mobility', 'numerical'),
+    Study('feature_escape_slope', 'numerical'),
+    Study('face_basin_map', 'numerical'),
+    Study('mobility_exponent_continuum', 'numerical', output_argument=True),
+    Study('input_dependent_break_freeze', 'neural', device=True),
+    Study('shared_global_load_balancing', 'neural', device=True),
+    Study('shared_global_topk', 'neural', device=True),
+    Study('neural_capacity_break_freeze', 'neural', device=True),
+    Study('architecture_level_moe_check', 'neural', device=True),
+    Study('transformer_moe_agnews', 'neural', device=True),
+    Study('agnews_compute_matched_dense', 'neural', device=True),
+    Study('digits_moe_validation', 'neural', device=True),
+    Study('uci_har_moe_validation', 'neural', device=True),
+    Study('multidomain_small_moe', 'protocol'),
+    Study('multidomain_controlled_moe', 'protocol'),
+    Study('multidomain_capacity_robustness', 'protocol'),
+    Study('agnews_structure_comparison', 'protocol'),
+    Study('agnews_no_drop_clamp_release', 'protocol'),
+    Study('agnews_capacity_clamp_release', 'protocol'),
+    Study('router_update_no_drop', 'protocol'),
+    Study('router_update_capacity', 'protocol'),
 )
 BY_NAME = {study.name: study for study in STUDIES}
 
 
 def command(study: Study, python: str, args: list[str]) -> list[str]:
-    return [python, '-m', f'experiments.studies.{study.module}', *args]
+    return [python, '-m', f'experiments.studies.{study.name}', *args]
 
 
 def plan_commands(path: Path, python: str) -> list[tuple[str, list[str]]]:
@@ -95,12 +94,12 @@ def main() -> None:
     if len(BY_NAME) != len(STUDIES):
         raise RuntimeError('Duplicate study in registry')
     for study in STUDIES:
-        if not (ROOT/'experiments/studies'/f'{study.module}.py').is_file():
-            raise FileNotFoundError(study.module)
+        if not (ROOT/'experiments/studies'/f'{study.name}.py').is_file():
+            raise FileNotFoundError(study.name)
     if args.list:
         print('name\tsuite\tmodule')
         for study in STUDIES:
-            print(f'{study.name}\t{study.suite}\t{study.module}')
+            print(f'{study.name}\t{study.suite}\t{study.name}')
         return
     output = args.output_dir.resolve()
     if args.run_plan:

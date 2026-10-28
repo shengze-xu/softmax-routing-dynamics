@@ -175,8 +175,6 @@ def simulate(
     return result, state
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit the global interior-convergence theorem for exact joint gradient flow."
@@ -192,7 +190,6 @@ def main() -> None:
     finest_dt = min(dts)
     rows: list[list[object]] = []
     records: list[dict[str, object]] = []
-    representative_history: dict[str, np.ndarray] | None = None
     representative_errors: dict[float, float] = {}
 
     for scenario_index, scenario in enumerate(SCENARIOS):
@@ -209,8 +206,6 @@ def main() -> None:
                 )
                 assert state is not None
                 by_dt[dt] = (result, state)
-                if keep_history:
-                    representative_history = state
 
             reference_p = by_dt[finest_dt][1]["p"]
             reference_e = by_dt[finest_dt][1]["E"]
@@ -317,7 +312,6 @@ def main() -> None:
         "maximum final coarse-to-fine routing error = "
         f"{max(float(record['final_p_refinement_error']) for record in records):.6e}"
     )
-
 
 
 if __name__ == "__main__":

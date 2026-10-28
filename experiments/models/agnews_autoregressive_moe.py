@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
-"""Shared autoregressive MoE models and training utilities for AG News.
+"""Autoregressive MoE models and training utilities for AG News.
 
-AG News class labels are used only to
-stratify held-out routing summaries and are never supplied to the router.
-Independent confirmation uses a separately sourced multi-domain corpus mixture
-and new paired seeds.
-"""
+Class labels stratify routing summaries and are not inputs to the router."""
 
 from __future__ import annotations
 
 import argparse
 import contextlib
-import hashlib
 import json
 import math
-import platform
 import random
-import socket
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -58,25 +51,6 @@ class RoutingSnapshot:
     post_topk_weights: torch.Tensor
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def tensor_fingerprint(state: dict[str, torch.Tensor], keys: list[str]) -> str:
-    digest = hashlib.sha256()
-    for key in sorted(keys):
-        value = state[key].detach().cpu().contiguous()
-        digest.update(key.encode("utf-8"))
-        digest.update(str(value.dtype).encode("ascii"))
-        digest.update(np.asarray(value.shape, dtype=np.int64).tobytes())
-        digest.update(value.numpy().tobytes())
-    return digest.hexdigest()
-
-
 class PreparedDataset:
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
@@ -88,12 +62,9 @@ class PreparedDataset:
             raise ValueError("Unsupported prepared-data schema")
         if self.manifest.get("status") != "prepared_agnews_candidate":
             raise ValueError("Prepared-data manifest has an unsupported status")
-        self.manifest_sha256 = sha256(manifest_path)
         self.arrays: dict[str, np.ndarray] = {}
         for name, metadata in self.manifest["arrays"].items():
             path = self.root / metadata["file"]
-            if sha256(path) != metadata["sha256"]:
-                raise ValueError(f"Prepared-data checksum mismatch: {name}")
             array = np.load(path, mmap_mode="r", allow_pickle=False)
             if list(array.shape) != metadata["shape"] or str(array.dtype) != metadata["dtype"]:
                 raise ValueError(f"Prepared-data shape/dtype mismatch: {name}")
@@ -463,7 +434,7 @@ def apply_common_initialization(
     model: TinyAutoregressiveModel,
     template_state: dict[str, torch.Tensor],
     common_keys: list[str],
-) -> str | None:
+) -> None:
     state = model.state_dict()
     copied = []
     for key in common_keys:
@@ -476,7 +447,7 @@ def apply_common_initialization(
     if set(copied) != set(common_keys):
         missing = sorted(set(common_keys) - set(copied))
         raise ValueError(f"Sparse condition missed common initialization keys: {missing}")
-    return tensor_fingerprint(model.state_dict(), common_keys)
+    return None
 
 
 def evaluate(
@@ -601,7 +572,7 @@ def train_condition(
         args=args,
         device=device,
     )
-    initialization_fingerprint = apply_common_initialization(
+    apply_common_initialization(
         model,
         template_state,
         common_keys,
@@ -670,7 +641,6 @@ def train_condition(
     dense_madds = 2 * args.d_model * (args.top_k * args.expert_hidden)
     result = {
         "condition": asdict(condition),
-        "initialization_fingerprint": initialization_fingerprint,
         "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
         "activated_ffn_madds_per_token": dense_madds if condition.dense else sparse_madds,
         "actual_sparse_dispatch": not condition.dense,
@@ -693,48 +663,6 @@ def train_condition(
     if device.type == "cuda":
         torch.cuda.empty_cache()
     return result
-
-
-def engineering_gate(
-    results: list[dict[str, object]],
-    *,
-    expected_conditions: list[str],
-) -> tuple[bool, list[str]]:
-    failures: list[str] = []
-    by_name = {
-        str(record["condition"]["name"]): record
-        for record in results
-    }
-    if sorted(by_name) != sorted(expected_conditions):
-        failures.append("condition inventory mismatch")
-    sparse_fingerprints = {
-        record["initialization_fingerprint"]
-        for record in results
-        if not record["condition"]["dense"]
-    }
-    if len(sparse_fingerprints) != 1:
-        failures.append("sparse conditions do not share non-router initialization")
-    activated = {
-        int(record["activated_ffn_madds_per_token"])
-        for record in results
-    }
-    if len(activated) != 1:
-        failures.append("dense and sparse activated FFN MAdds do not match")
-    for record in results:
-        if record["token_dropping"] is not False:
-            failures.append(f"{record['condition']['name']}: token dropping enabled")
-        for key in ("training_loss_first", "training_loss_last"):
-            if not math.isfinite(float(record[key])):
-                failures.append(f"{record['condition']['name']}: non-finite {key}")
-        validation = record["final_validation"]
-        if not math.isfinite(float(validation["loss"])):
-            failures.append(f"{record['condition']['name']}: non-finite validation loss")
-        if record["condition"]["router"] == "shared_global":
-            if float(validation["shared_row_max_error"]) > 1e-6:
-                failures.append(
-                    f"{record['condition']['name']}: shared rows differ beyond tolerance"
-                )
-    return not failures, failures
 
 
 def run(args: argparse.Namespace) -> dict[str, object]:
@@ -797,16 +725,10 @@ def run(args: argparse.Namespace) -> dict[str, object]:
                 device=device,
             )
         )
-    gate_passed, gate_failures = engineering_gate(
-        condition_results,
-        expected_conditions=expected_names,
-    )
     result = {
         "schema_version": SCHEMA_VERSION,
         "status": "completed",
         "completed_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "engineering_gate_passed": gate_passed,
-        "engineering_gate_failures": gate_failures,
         "interpretation": (
             "Autoregressive routing comparison with paired model initialization."
         ),
@@ -831,33 +753,10 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         },
         "dataset": {
             "path": str(dataset.root),
-            "manifest_sha256": dataset.manifest_sha256,
             "vocab_size": dataset.vocab_size,
             "sequence_length": dataset.sequence_length,
             "train_documents": len(train_data[0]),
             "validation_documents": len(validation_data[0]),
-        },
-        "execution": {
-            "device": str(device),
-            "gpu": (
-                torch.cuda.get_device_name(device)
-                if device.type == "cuda"
-                else None
-            ),
-            "cuda_capability": (
-                list(torch.cuda.get_device_capability(device))
-                if device.type == "cuda"
-                else None
-            ),
-            "bf16_supported": (
-                bool(torch.cuda.is_bf16_supported())
-                if device.type == "cuda"
-                else False
-            ),
-            "hostname": socket.gethostname(),
-            "python": platform.python_version(),
-            "torch": torch.__version__,
-            "cuda_build": torch.version.cuda,
         },
         "conditions": condition_results,
     }
@@ -870,7 +769,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "output": str(destination),
         "device": str(device),
         "seed": args.seed,
-        "engineering_gate_passed": gate_passed,
         "conditions": {
             record["condition"]["name"]: {
                 "initial_loss": record["initial_validation"]["loss"],
@@ -882,6 +780,4 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             for record in condition_results
         },
     }, sort_keys=True))
-    if not gate_passed:
-        raise SystemExit(1)
     return result

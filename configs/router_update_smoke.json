@@ -6,9 +6,9 @@
       "experiment": "router_update_no_drop",
       "args": [
         "--protocol",
-        "experiments/protocols/router_update_design.json",
+        "configs/router_update_design.json",
         "--probe-protocol",
-        "experiments/protocols/recovery_probe_design.json",
+        "configs/recovery_probe_design.json",
         "--dataset-dir",
         "data/agnews_prepared",
         "--output-dir",
@@ -28,9 +28,9 @@
       "experiment": "router_update_capacity",
       "args": [
         "--protocol",
-        "experiments/protocols/router_update_design.json",
+        "configs/router_update_design.json",
         "--probe-protocol",
-        "experiments/protocols/recovery_probe_design.json",
+        "configs/recovery_probe_design.json",
         "--dataset-dir",
         "data/agnews_prepared",
         "--output-dir",

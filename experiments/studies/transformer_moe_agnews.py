@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import os
 import random
 import re
@@ -24,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from experiments.common.numerics import add_torch_device_argument, ensure_output_dir, ensure_subdir, resolve_torch_device, write_csv
+from experiments.common.numerics import add_torch_device_argument, ensure_subdir, resolve_torch_device, write_csv
 
 
 torch.set_num_threads(1)
@@ -32,10 +31,6 @@ torch.set_num_threads(1)
 DATA_URLS = {
     "train": "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/train.csv",
     "test": "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/test.csv",
-}
-DATA_MD5 = {
-    "train": "b1a00f826fdfbd249f79597b59e1dc12",
-    "test": "d52ea96a97a2d943681189a97654912d",
 }
 TOKEN_PATTERN = re.compile(r"[A-Za-z]+|[0-9]+|[^\w\s]", re.UNICODE)
 NUM_CLASSES = 4
@@ -56,25 +51,14 @@ MODES = (
 )
 
 
-def md5(path: Path) -> str:
-    digest = hashlib.md5()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def ensure_agnews(data_dir: Path) -> tuple[Path, Path]:
     data_dir.mkdir(parents=True, exist_ok=True)
     paths: dict[str, Path] = {}
     for split, url in DATA_URLS.items():
         path = data_dir / f"{split}.csv"
-        if not path.exists() or md5(path) != DATA_MD5[split]:
+        if not path.exists():
             print(f"downloading AG News {split} split")
             urllib.request.urlretrieve(url, path)
-        actual = md5(path)
-        if actual != DATA_MD5[split]:
-            raise RuntimeError(f"AG News {split} checksum mismatch: {actual}")
         paths[split] = path
     return paths["train"], paths["test"]
 
@@ -384,10 +368,8 @@ def aggregate(records: list[dict[str, object]], mode: Mode) -> dict[str, object]
     return result
 
 
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Small Transformer-MoE audit on AG News.")
+    parser = argparse.ArgumentParser(description="Small Transformer-MoE comparison on AG News.")
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--train-per-class", type=int, default=1000)
@@ -505,40 +487,6 @@ def main() -> None:
         load_rows,
     )
 
-    manifest = ensure_output_dir() / "transformer_moe_agnews_manifest.txt"
-    manifest.write_text(
-        "\n".join(
-            [
-                f"train_url={DATA_URLS['train']}",
-                f"train_md5={DATA_MD5['train']}",
-                f"test_url={DATA_URLS['test']}",
-                f"test_md5={DATA_MD5['test']}",
-                "dataset_citation=Zhang_Zhao_LeCun_2015_Character-level_Convolutional_Networks_for_Text_Classification",
-                f"train_per_class={args.train_per_class}",
-                f"test_per_class={args.test_per_class}",
-                f"subset_seed=20260717",
-                f"vocab_size={len(vocab)}",
-                f"seeds={','.join(str(seed) for seed in args.seeds)}",
-                f"epochs={args.epochs}",
-                f"batch_size={args.batch_size}",
-                f"learning_rate={args.learning_rate}",
-                f"weight_decay={args.weight_decay}",
-                f"max_length={args.max_length}",
-                f"max_vocab={args.max_vocab}",
-                f"d_model={args.d_model}",
-                f"num_heads={args.num_heads}",
-                f"num_experts={args.num_experts}",
-                f"expert_hidden={args.expert_hidden}",
-                f"dropout={args.dropout}",
-                "model=one_block_transformer_token_top2_moe",
-                "optimizer=AdamW",
-                f"device={device}",
-                f"torch_version={torch.__version__}",
-                f"numpy_version={np.__version__}",
-            ]
-        )
-        + "\n"
-    )
 
     for record in aggregates:
         print(

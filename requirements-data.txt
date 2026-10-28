@@ -1,3 +1,0 @@
-# Required only to prepare tokenized text corpora.
-datasets
-transformers

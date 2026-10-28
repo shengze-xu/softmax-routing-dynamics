@@ -411,14 +411,6 @@ def aggregate_results(results: list[TrainResult]) -> AggregatedResult:
     )
 
 
-
-
-
-
-
-
-
-
 def write_outputs(results_by_mode: list[list[TrainResult]], aggregated: list[AggregatedResult], seeds: list[int]) -> None:
     out_dir = ensure_output_dir()
     tables_dir = ensure_subdir("tables")
@@ -662,7 +654,6 @@ def main() -> None:
         )
 
     write_outputs(results_by_mode, aggregated, seeds)
-
 
 
 if __name__ == "__main__":

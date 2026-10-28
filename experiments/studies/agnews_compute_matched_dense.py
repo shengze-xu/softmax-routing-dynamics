@@ -241,19 +241,9 @@ def build_compute_profiles(
     return profiles
 
 
-def read_agnews_summary() -> dict[str, dict[str, str]]:
-    import csv
-
-    path = ensure_subdir("tables") / "transformer_moe_agnews_summary.csv"
-    with path.open(newline="") as handle:
-        return {row["mode"]: row for row in csv.DictReader(handle)}
-
-
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Expert-path-MAdd-matched dense baseline for the AG News MoE exploratory."
+        description="Expert-path-MAdd-matched dense baseline for the AG News MoE comparison."
     )
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
     parser.add_argument("--epochs", type=int, default=8)

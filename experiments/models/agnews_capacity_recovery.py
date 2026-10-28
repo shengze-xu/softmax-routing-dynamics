@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-"""Capacity-limited recovery robustness on the no-drop recovery intervention.
+"""Recovery interventions with capacity-limited top-2 dispatch.
 
-The scientific endpoint is unchanged from no-drop recovery: persistent recovery of
-the pre-top-k target probability after hard-clamp release relative to the
-no-positive-advantage control.  capacity recovery changes only dispatch: top-2 expert
-assignments are capped at capacity factor 1.25, excess assignments are
-dropped in stable token order, and no rerouting is performed.
-"""
+Cap expert assignments at capacity factor 1.25 and drop overflow in stable
+token order. Track target probabilities before dispatch."""
 
 from __future__ import annotations
 
@@ -34,10 +30,8 @@ from experiments.models import agnews_no_drop_recovery as no_drop_recovery
 
 SCHEMA_VERSION = 1
 IMPLEMENTATION_VERSION = 1
-STUDY = "capacity_recovery_capacity_limited_recovery_development"
+STUDY = "agnews_capacity_recovery"
 SMOKE_SEED = 4600
-EXPLORATORY_SEEDS = {4601, 4602, 4603}
-PRIMARY_SEEDS = set(range(4701, 4709))
 CAPACITY_FACTOR = 1.25
 
 
@@ -355,23 +349,18 @@ def routing_diagnostics(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    if args.seed in PRIMARY_SEEDS:
-        raise ValueError("Supporting implementation excludes recorded study seeds")
     original_make_model = no_drop_recovery.make_model
     original_diagnostics = no_drop_recovery.routing_diagnostics
     original_study = no_drop_recovery.STUDY
-    original_primary_seeds = no_drop_recovery.PRIMARY_SEEDS
     no_drop_recovery.make_model = make_model
     no_drop_recovery.routing_diagnostics = routing_diagnostics
     no_drop_recovery.STUDY = STUDY
-    no_drop_recovery.PRIMARY_SEEDS = PRIMARY_SEEDS
     try:
         result = no_drop_recovery.run(args)
     finally:
         no_drop_recovery.make_model = original_make_model
         no_drop_recovery.routing_diagnostics = original_diagnostics
         no_drop_recovery.STUDY = original_study
-        no_drop_recovery.PRIMARY_SEEDS = original_primary_seeds
 
     result["implementation_version"] = IMPLEMENTATION_VERSION
     result["capacity_recovery_robustness"] = True

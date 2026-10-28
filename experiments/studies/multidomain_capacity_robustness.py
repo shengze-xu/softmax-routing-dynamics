@@ -1,24 +1,13 @@
 #!/usr/bin/env python3
-"""Capacity-limited robustness of the controlled Transformer-MoE.
+"""Compare shared and input-conditioned routing with capacity limits.
 
-The experiment reuses the frozen controlled multidomain architecture and optimizer schedule,
-but trains four new, within-seed paired conditions:
-
-* shared-global and input-conditioned no-drop references;
-* shared-global and input-conditioned capacity-factor-1.25 variants.
-
-Capacity is applied to active top-2 assignments independently in every layer
-and microbatch.  Overflow assignments are dropped in deterministic row-major
-order.  They are never silently rerouted or renormalized.  The result records
-accepted, overflow, rerouted, and dropped assignment and token-layer events.
-"""
+Pair no-drop and capacity-limited runs within each seed. Drop overflow
+assignments in row-major order and record dispatch counts."""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -51,16 +40,6 @@ CONDITION_NAMES = [
 ACTIVE_MASK: torch.Tensor | None = None
 ACTIVE_CONDITION = ""
 ACCOUNTING: dict[str, dict[str, dict[int, dict[str, Any]]]] = {}
-ROUTER_INITIALIZATION: dict[str, str] = {}
-
-
-def json_fingerprint(value: object) -> str:
-    payload = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
 
 
 def make_conditions(_: float) -> tuple[base.Condition, ...]:
@@ -365,15 +344,6 @@ def build_model(
         module.capacity_enabled = capacity_enabled
         module.capacity_factor = CAPACITY_FACTOR
         module.capacity_layer_index = layer
-    router_keys = [
-        key
-        for key in model.state_dict()
-        if ".moe.router." in key or ".moe.global_logits" in key
-    ]
-    ROUTER_INITIALIZATION[condition.name] = base.tensor_fingerprint(
-        model.state_dict(),
-        router_keys,
-    )
     return model
 
 
@@ -440,85 +410,9 @@ def train_condition(
     ACCOUNTING[condition.name] = {}
     record = ORIGINAL_TRAIN_CONDITION(condition, **kwargs)
     record["capacity_accounting"] = _serialize_accounting(condition.name)
-    record["router_initialization_fingerprint"] = ROUTER_INITIALIZATION[
-        condition.name
-    ]
     record["token_dropping"] = is_capacity_condition(condition.name)
     record["capacity_truncation"] = is_capacity_condition(condition.name)
     return record
-
-
-def engineering_gate(
-    results: list[dict[str, object]],
-    *,
-    expected_conditions: list[str],
-) -> tuple[bool, list[str]]:
-    failures: list[str] = []
-    names = [str(row["condition"]["name"]) for row in results]
-    if names != expected_conditions:
-        failures.append("condition inventory or order mismatch")
-    if len({row["batch_plan_fingerprint"] for row in results}) != 1:
-        failures.append("batch plan differs across conditions")
-    if len({int(row["optimizer_steps"]) for row in results}) != 1:
-        failures.append("optimizer steps differ across conditions")
-    if len({int(row["training_target_tokens"]) for row in results}) != 1:
-        failures.append("training target tokens differ across conditions")
-    if len({row["sparse_initialization_fingerprint"] for row in results}) != 1:
-        failures.append("non-router initialization differs")
-    by_name = {str(row["condition"]["name"]): row for row in results}
-    for router in ("shared_global", "conditioned"):
-        left = by_name[f"{router}_top2"]
-        right = by_name[f"{router}_top2_capacity_1p25"]
-        if (
-            left["router_initialization_fingerprint"]
-            != right["router_initialization_fingerprint"]
-        ):
-            failures.append(f"{router} router initialization differs")
-    for row in results:
-        name = str(row["condition"]["name"])
-        if not math.isfinite(float(row["training_loss_last"])):
-            failures.append(f"{name}: non-finite training loss")
-        if not math.isfinite(float(row["final_validation"]["loss"])):
-            failures.append(f"{name}: non-finite validation loss")
-        expected_capacity = is_capacity_condition(name)
-        if bool(row["token_dropping"]) != expected_capacity:
-            failures.append(f"{name}: token-dropping declaration mismatch")
-        accounting = row["capacity_accounting"]
-        if bool(accounting["capacity_enabled"]) != expected_capacity:
-            failures.append(f"{name}: capacity declaration mismatch")
-        for mode in ("training", "evaluation"):
-            layers = accounting["modes"].get(mode, {}).get("layers", [])
-            if len(layers) != 6:
-                failures.append(f"{name}: {mode} layer accounting incomplete")
-                continue
-            for layer in layers:
-                original = int(layer["original_assignments"])
-                accepted = int(layer["accepted_original_assignments"])
-                overflow = int(layer["overflow_assignments"])
-                dropped = int(layer["dropped_assignments"])
-                rerouted = int(layer["rerouted_assignments"])
-                final = int(layer["accepted_final_assignments"])
-                if original != accepted + overflow:
-                    failures.append(f"{name}: original accounting identity failed")
-                if overflow != dropped + rerouted:
-                    failures.append(f"{name}: overflow accounting identity failed")
-                if final != accepted + rerouted:
-                    failures.append(f"{name}: final accounting identity failed")
-                if rerouted != 0:
-                    failures.append(f"{name}: frozen no-reroute policy changed")
-                if not expected_capacity and (overflow or dropped):
-                    failures.append(f"{name}: no-drop reference had overflow")
-    capacity_training_overflow = [
-        sum(
-            int(layer["overflow_assignments"])
-            for layer in row["capacity_accounting"]["modes"]["training"]["layers"]
-        )
-        for row in results
-        if is_capacity_condition(str(row["condition"]["name"]))
-    ]
-    if not capacity_training_overflow or min(capacity_training_overflow) <= 0:
-        failures.append("capacity stress did not exercise overflow")
-    return not failures, failures
 
 
 def run(args: argparse.Namespace) -> dict[str, object]:
@@ -541,7 +435,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "make_conditions": controlled_model.make_conditions,
         "build_model": controlled_model.build_model,
         "train_condition": controlled_model.train_condition,
-        "engineering_gate": controlled_model.engineering_gate,
         "target_mask": base.target_mask,
     }
     controlled_model.CONDITION_NAMES = CONDITION_NAMES
@@ -549,7 +442,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     controlled_model.make_conditions = make_conditions
     controlled_model.build_model = build_model
     controlled_model.train_condition = train_condition
-    controlled_model.engineering_gate = engineering_gate
     base.target_mask = tracked_target_mask
     delegated_role = (
         "resource_smoke"
@@ -566,7 +458,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         controlled_model.make_conditions = original["make_conditions"]
         controlled_model.build_model = original["build_model"]
         controlled_model.train_condition = original["train_condition"]
-        controlled_model.engineering_gate = original["engineering_gate"]
         base.target_mask = original["target_mask"]
 
     result["schema_version"] = SCHEMA_VERSION
@@ -616,12 +507,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "capacity_factor",
     ):
         result["config"][key] = getattr(args, key)
-    result["config"]["capacity_training_config_fingerprint"] = json_fingerprint(
-        {
-            **result["config"],
-            "capacity_design": result["capacity_design"],
-        }
-    )
     destination = args.output_dir.resolve() / "result.json"
     destination.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",

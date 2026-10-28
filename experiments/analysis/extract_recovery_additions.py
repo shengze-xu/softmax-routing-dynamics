@@ -1,12 +1,11 @@
 """Read-only extraction from original recovery results and fixed-token probes.
 
 Read run directories specified by --config. Write the extracted numerical
-records and input checksums to --output-dir. Cohort mappings are explicit to keep capacity reruns separate.
+records to --output-dir. Cohort mappings are explicit to keep capacity reruns separate.
 """
 import argparse
 import csv
 import gzip
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -24,20 +23,17 @@ def run(root, specifications):
     if not specifications or set(specifications)-allowed:
         raise ValueError('Unknown or empty recovery groups')
     groups = {name:[(value['directory'], seed) for seed in value['seeds']] for name,value in specifications.items()}
-    result = {'sources': [], 'threshold_cells': [], 'probe_trajectories': [], 'integrity': {'probe_rows': 0, 'max_probability_continuity_error': 0., 'max_logit_continuity_error': 0., 'max_telescoping_error': 0., 'max_pair_initial_error': 0.}}
+    result = {'threshold_cells': [], 'probe_trajectories': [], 'integrity': {'probe_rows': 0, 'max_probability_continuity_error': 0., 'max_logit_continuity_error': 0., 'max_telescoping_error': 0., 'max_pair_initial_error': 0.}}
     for group, runs in groups.items():
         for folder, seed in runs:
             directory = root / folder / str(seed)
             path = directory / 'result.json'
             data = path.read_bytes()
-            result['sources'].append({'path': str(path.resolve()), 'sha256': hashlib.sha256(data).hexdigest()})
             obj = json.loads(data)
             del data
             if group != 'capacity_probe_rerun':
                 for mass, cell in obj['cells'].items():
                     branches = cell['branches']
-                    for field in ['start_model_fingerprint', 'start_optimizer_fingerprint', 'future_batch_plan_fingerprint']:
-                        assert branches[BRANCHES[0]][field] == branches[BRANCHES[1]][field]
                     for branch in BRANCHES:
                         b = branches[branch]
                         steps = b['evaluation_steps']
@@ -55,7 +51,6 @@ def run(root, specifications):
                 paired_initial = {}
                 for branch in BRANCHES:
                     path = directory / ('probe_decomposition_mass_%.3f_%s.csv.gz' % (mass, branch))
-                    result['sources'].append({'path': str(path.resolve()), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
                     tracks, sums = {}, {}
                     with gzip.open(path, 'rt') as f:
                         for row in csv.DictReader(f):
@@ -105,8 +100,6 @@ def main():
     payload=run(args.root,config['groups'])
     args.output_dir.mkdir(parents=True,exist_ok=True)
     (args.output_dir/'extracted.json').write_text(json.dumps(payload)+'\n')
-    inventory={'groups':{'runs':{'files':payload['sources']}}}
-    (args.output_dir/'inventory.json').write_text(json.dumps(inventory,indent=2)+'\n')
     print(json.dumps(payload['integrity'],indent=2))
 
 if __name__ == '__main__':

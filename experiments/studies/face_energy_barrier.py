@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Finite face-energy barrier audit for fixed-expert router flows."""
+"""Finite face-energy barrier experiment for fixed-expert router flows."""
 
 from __future__ import annotations
 
@@ -335,8 +335,6 @@ def boundary_control(scenario: Scenario) -> tuple[tuple[int, ...], Array]:
     return tuple(selected["support"]), weights
 
 
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit finite stationary face-energy levels and barrier entry.")
     parser.add_argument("--dt", type=float, default=0.02)
@@ -427,7 +425,6 @@ def main() -> None:
     print(f"minimum terminal barrier margin = {min(float(record['terminal_barrier_margin']) for record in interior):.6e}")
     print(f"maximum terminal outside-face mass = {max(float(record['terminal_outside_mass']) for record in interior):.6e}")
     print(f"wrong-boundary control support = {control['active_support']}")
-
 
 
 if __name__ == "__main__":

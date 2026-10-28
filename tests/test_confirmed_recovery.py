@@ -3,11 +3,11 @@
 if __package__ in (None, ""):
     import sys
     from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import unittest
 import numpy as np
-from experiments.analysis.analyze_confirmed_recovery import confirmed_rmst, analyze, verify_cells
+from experiments.analysis.analyze_confirmed_recovery import confirmed_rmst
 class ConfirmedRecoveryTests(unittest.TestCase):
     def test_confirmation_at_last_evaluation(self):
         # The last confirmed onset is 960; confirmation and censoring both at 1024.

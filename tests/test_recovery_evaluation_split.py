@@ -2,7 +2,7 @@
 if __package__ in (None, ""):
     import sys
     from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import unittest
 from types import SimpleNamespace
@@ -29,7 +29,7 @@ class ValidationSplitTests(unittest.TestCase):
             self.assertEqual(len(b[0]),count)
             self.assertFalse(set(meta['selection_row_ids']) & set(meta['recovery_row_ids']))
             self.assertEqual(np.bincount(a[2]).tolist(),np.bincount(b[2]).tolist())
-            self.assertNotEqual(meta['selection_index_sha256'],meta['recovery_index_sha256'])
+            self.assertTrue(set(meta['selection_row_ids']).isdisjoint(meta['recovery_row_ids']))
             self.assertEqual(meta,validation_sets(dataset,count)[2])
 
     def test_no_silent_sample_reuse(self):

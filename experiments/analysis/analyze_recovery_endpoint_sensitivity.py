@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
-"""Recode non-recovery from frozen paired-seed summaries without refitting.
+"""Compare recovery summaries under alternative non-recovery codes.
 
-The historical columns named restricted recovery time and probability by step
-1088 encode a 1024-step experiment: unconfirmed recovery was assigned 1088.
-This analysis preserves the original observations and protocol and reports
-descriptive sensitivity to that code. It does not estimate survival beyond
-the observation window.
-"""
+Recode the historical 1,088 marker within the 1,024-step observation window
+and summarize paired seed contrasts."""
 
 from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import math
 from pathlib import Path
 
@@ -102,9 +97,6 @@ def main() -> None:
         print(f"{row['cohort']} code={row['non_recovery_code']}: "
               f"difference={row['projection_minus_free_mean_coded_time']}, "
               f"sign_p={row['exact_two_sided_sign_p']}")
-    for spec in SPECS:
-        path = args.input_dir.resolve() / spec[1]
-        print(f"source_sha256 {hashlib.sha256(path.read_bytes()).hexdigest()} {path}")
 
 
 if __name__ == "__main__":

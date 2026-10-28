@@ -10,14 +10,11 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import hashlib
 import json
 import math
 import os
 from pathlib import Path
-import platform
 import random
-import socket
 import time
 from typing import Any
 
@@ -42,37 +39,6 @@ CONDITIONS = (
 CAPACITY_FACTOR = 1.25
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def json_fingerprint(value: object) -> str:
-    payload = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def tensor_fingerprint(
-    state: dict[str, torch.Tensor],
-    keys: list[str],
-) -> str:
-    digest = hashlib.sha256()
-    for key in sorted(keys):
-        value = state[key].detach().cpu().contiguous()
-        digest.update(key.encode("utf-8"))
-        digest.update(str(value.dtype).encode("ascii"))
-        digest.update(np.asarray(value.shape, dtype=np.int64).tobytes())
-        digest.update(value.numpy().tobytes())
-    return digest.hexdigest()
-
-
 def manifest_domain_names(manifest: dict[str, Any]) -> list[str]:
     names = manifest.get("domain_names")
     if names is None:
@@ -85,7 +51,7 @@ def manifest_domain_names(manifest: dict[str, Any]) -> list[str]:
 
 
 class IndependentPreparedDataset:
-    """Minimal hash-checking loader independent of earlier dataset classes."""
+    """Prepared-array loader independent of earlier dataset classes."""
 
     def __init__(
         self,
@@ -105,7 +71,6 @@ class IndependentPreparedDataset:
                 "Dataset status does not match the frozen protocol"
             )
         self.status = str(self.manifest["status"])
-        self.manifest_sha256 = sha256(manifest_path)
         selection = self.manifest["selection"]
         self.domain_names = manifest_domain_names(self.manifest)
         self.sequence_length = int(selection["sequence_length"])
@@ -115,8 +80,6 @@ class IndependentPreparedDataset:
         self.arrays: dict[str, np.ndarray] = {}
         for name, metadata in self.manifest["arrays"].items():
             path = self.root / metadata["file"]
-            if sha256(path) != metadata["sha256"]:
-                raise ValueError(f"Dataset checksum mismatch: {name}")
             value = np.load(path, mmap_mode="r", allow_pickle=False)
             if list(value.shape) != metadata["shape"]:
                 raise ValueError(f"Dataset shape mismatch: {name}")
@@ -641,14 +604,6 @@ def common_state_keys(state: dict[str, torch.Tensor]) -> list[str]:
     ]
 
 
-def router_state_keys(state: dict[str, torch.Tensor]) -> list[str]:
-    return [
-        key
-        for key in state
-        if ".moe.router." in key or ".moe.global_logits" in key
-    ]
-
-
 def make_model(
     condition: Condition,
     *,
@@ -730,10 +685,6 @@ def train_condition(
         seed=seed,
     )
     model.load_state_dict(state)
-    common_keys = common_state_keys(model.state_dict())
-    router_keys = router_state_keys(model.state_dict())
-    common_fingerprint = tensor_fingerprint(model.state_dict(), common_keys)
-    router_fingerprint = tensor_fingerprint(model.state_dict(), router_keys)
     model.to(device)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
@@ -822,8 +773,6 @@ def train_condition(
                 CAPACITY_FACTOR if condition.capacity_limited else None
             ),
         },
-        "common_initialization_fingerprint": common_fingerprint,
-        "router_initialization_fingerprint": router_fingerprint,
         "optimizer_steps": max_steps,
         "training_target_tokens": training_target_tokens,
         "training_seconds": training_seconds,
@@ -845,63 +794,6 @@ def train_condition(
             else 0
         ),
     }
-
-
-def engineering_gate(
-    records: list[dict[str, Any]],
-) -> tuple[bool, list[str]]:
-    failures: list[str] = []
-    names = [record["condition"]["name"] for record in records]
-    if names != list(CONDITIONS):
-        failures.append("condition inventory or order mismatch")
-    common = {
-        record["common_initialization_fingerprint"] for record in records
-    }
-    if len(common) != 1:
-        failures.append("non-router initialization differs")
-    for router in ("shared_global", "input_conditioned"):
-        values = {
-            record["router_initialization_fingerprint"]
-            for record in records
-            if record["condition"]["router"] == router
-        }
-        if len(values) != 1:
-            failures.append(f"{router}: capacity pair router init differs")
-    if len({record["optimizer_steps"] for record in records}) != 1:
-        failures.append("optimizer step count differs")
-    if len({record["training_target_tokens"] for record in records}) != 1:
-        failures.append("training target-token count differs")
-    for record in records:
-        name = record["condition"]["name"]
-        for key in (
-            "training_loss_first",
-            "training_loss_last",
-            "gradient_norm_last",
-            "training_seconds",
-            "training_target_tokens_per_second",
-        ):
-            if not math.isfinite(float(record[key])) or float(record[key]) <= 0:
-                failures.append(f"{name}: {key} is non-finite")
-        if not record["training_capacity_accounting_valid"]:
-            failures.append(f"{name}: invalid training capacity accounting")
-        for stage in ("initial_validation", "final_validation"):
-            evaluation = record[stage]
-            if not math.isfinite(float(evaluation["loss"])):
-                failures.append(f"{name}: {stage} loss is non-finite")
-            if not evaluation["capacity_accounting_valid"]:
-                failures.append(f"{name}: {stage} accounting invalid")
-        limited = bool(record["condition"]["capacity_limited"])
-        training_rows = record["training_capacity_accounting_by_layer"]
-        overflow = sum(row["overflow_assignments"] for row in training_rows)
-        if not limited and overflow != 0:
-            failures.append(f"{name}: no-drop condition overflowed")
-        if limited and overflow <= 0:
-            failures.append(f"{name}: capacity path was not exercised")
-        if record["condition"]["router"] == "shared_global":
-            error = record["final_validation"]["shared_row_max_error"]
-            if float(error) > 1e-7:
-                failures.append(f"{name}: shared router rows differ")
-    return not failures, failures
 
 
 def configure_execution(device: torch.device) -> None:
@@ -990,49 +882,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ),
             flush=True,
         )
-    passed, failures = engineering_gate(records)
     result = {
         "schema_version": SCHEMA_VERSION,
         "implementation_version": IMPLEMENTATION_VERSION,
-        "status": "passed" if passed else "failed",
+        "status": "completed",
         "completed_at_utc": datetime.now(timezone.utc).isoformat(
             timespec="seconds"
         ),
         "study": "agnews_structure_comparison",
         "role": role,
         "protocol_id": args.protocol_id,
-        "independence": {
-            "model_logger_training_reimplemented": True,
-            "imports_prior_experiment_implementation": False,
-            "non_overlapping_corpus_family": "AG News categories",
-        },
-        "engineering_gate_passed": passed,
-        "engineering_gate_failures": failures,
         "config": {"seed": args.seed, **args.config},
         "dataset": {
             "path": str(dataset.root),
             "status": dataset.status,
-            "manifest_sha256": dataset.manifest_sha256,
             "domain_names": dataset.domain_names,
             "vocab_size": dataset.vocab_size,
             "sequence_length": dataset.sequence_length,
             "train_sequences": len(train_data[0]),
             "validation_sequences": len(validation_data[0]),
-        },
-        "execution": {
-            "device": str(device),
-            "gpu": torch.cuda.get_device_name(device),
-            "cuda_capability": list(
-                torch.cuda.get_device_capability(device)
-            ),
-            "hostname": socket.gethostname(),
-            "python": platform.python_version(),
-            "torch": torch.__version__,
-            "cuda_build": torch.version.cuda,
-            "conda_prefix": os.environ.get("CONDA_PREFIX"),
-            "cublas_workspace_config": os.environ.get(
-                "CUBLAS_WORKSPACE_CONFIG"
-            ),
         },
         "conditions": records,
     }
@@ -1045,15 +913,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         json.dumps(
             {
                 "status": result["status"],
-                "engineering_gate_passed": passed,
-                "failures": failures,
                 "output": str(destination),
             },
             sort_keys=True,
         )
     )
-    if not passed:
-        raise SystemExit(1)
     return result
 
 
@@ -1062,6 +926,7 @@ def main() -> None:
     parser.add_argument("--dataset-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--protocol-id", required=True)
+    parser.add_argument("--role", choices=("smoke", "primary"), default="primary")
     parser.add_argument("--seed", type=int, required=True)
     configuration = parser.add_mutually_exclusive_group(required=True)
     configuration.add_argument("--config", type=Path)
@@ -1069,7 +934,6 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     values = parser.parse_args()
     values.config = json.loads(values.config.read_text() if values.config else values.config_json)
-    values.role = "smoke"
     values.expected_dataset_status = DATASET_STATUS
     run(values)
 

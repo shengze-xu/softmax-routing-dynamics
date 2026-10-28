@@ -30,21 +30,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.seed not in PRIMARY_SEEDS:
         raise ValueError(f"Seed is outside the recorded inventory: {args.seed}")
     original_study = core.STUDY
-    original_primary_seeds = core.PRIMARY_SEEDS
     core.STUDY = "capacity_recovery_capacity_limited_recovery_primary"
-    core.PRIMARY_SEEDS = set()
     try:
         result = core.run(args)
     finally:
         core.STUDY = original_study
-        core.PRIMARY_SEEDS = original_primary_seeds
     result.update(
         {
             "study": "capacity_recovery_capacity_limited_recovery_primary",
             "role": "primary",
             "primary_wrapper_version": PRIMARY_WRAPPER_VERSION,
             "capacity_release_confirmatory": True,
-            "primary_protocol_sha256": args.protocol_sha256,
         }
     )
     destination = args.output_dir.resolve() / "result.json"
@@ -60,7 +56,6 @@ def main() -> None:
     parser.add_argument("--dataset-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--protocol-id", required=True)
-    parser.add_argument("--protocol-sha256", required=True)
     parser.add_argument("--role", required=True)
     parser.add_argument("--seed", type=int, required=True)
     configuration = parser.add_mutually_exclusive_group(required=True)
