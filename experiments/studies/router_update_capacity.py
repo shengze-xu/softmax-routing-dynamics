@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capacity-factor-1.25 cohort of the frozen router-update mechanism protocol."""
+"""Router-gradient recovery interventions with capacity factor 1.25."""
 
 from __future__ import annotations
 
@@ -594,10 +594,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     primary = args.role == "primary"
     probe_rerun = args.role == "probe_rerun"
     if primary and args.seed not in PRIMARY_SEEDS:
-        raise ValueError("Seed is outside the frozen capacity-limited inventory")
+        raise ValueError("Seed is outside the configured capacity-limited cohort")
     if probe_rerun:
         if probe_protocol is None:
-            raise ValueError("Bridge role requires --probe-protocol")
+            raise ValueError("Probe reruns require --probe-protocol")
         allowed = set(cohort_design["seeds"])
         if args.seed not in allowed:
             raise ValueError("Seed is outside the capacity probe_rerun inventory")
@@ -653,7 +653,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         from experiments.common.recovery_evaluation_split import validation_sets
         evaluation_data, recovery_data, sample_design = validation_sets(
             dataset, int(config["limit_evaluation"]))
-        # Distinguish the new sampling design from every frozen result.
+        # Record the independent evaluation split in the protocol identifier.
         active_protocol_id += "_independent_eval_v1"
         config["protocol_id"] = active_protocol_id
     else:

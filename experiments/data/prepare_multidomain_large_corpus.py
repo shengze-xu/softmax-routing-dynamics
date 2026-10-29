@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare the frozen-source 68M-token large multidomain controlled corpus."""
+"""Prepare the 68M-token four-domain corpus from pinned source revisions."""
 
 from __future__ import annotations
 

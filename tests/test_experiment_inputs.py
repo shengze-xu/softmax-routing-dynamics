@@ -1,4 +1,4 @@
-"""Exercise prepared-array inputs without external audit or checksum files."""
+"""Check prepared-array loading and CPU training."""
 import contextlib
 import io
 import json
@@ -50,7 +50,7 @@ class ExperimentInputTests(unittest.TestCase):
         }
         (root / "manifest.json").write_text(json.dumps(manifest))
 
-    def test_all_prepared_loaders_accept_arrays_without_audit_files(self):
+    def test_all_prepared_loaders_accept_generated_arrays(self):
         for loader, status, length in (
             (PreparedDataset, "prepared_agnews_candidate", 4),
             (IndependentPreparedDataset, "prepared_agnews_candidate", 4),

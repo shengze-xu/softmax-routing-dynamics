@@ -35,12 +35,7 @@ python -m experiments.run --suite numerical
 python -m experiments.run --suite neural --device cpu
 ```
 
-Select individual studies with `--only`. Each study also supports `--help`:
-
-```bash
-python -m experiments.run --only face_energy_barrier timescale_closure
-python -m experiments.studies.router_update_no_drop --help
-```
+Select individual studies with `--only`; each study supports `--help`.
 
 GPU launch plans and model settings are in `configs/`. Set dataset and output
 paths before running a plan:
@@ -49,8 +44,14 @@ paths before running a plan:
 python -m experiments.run --run-plan configs/router_update_smoke.json --dry-run
 ```
 
-Data preparation and result analysis are in `experiments/data/` and
-`experiments/analysis/`; each command provides its arguments through `--help`.
+Data preparation commands are in `experiments/data/`. For recovery analysis,
+set the run directories in `configs/recovery_analysis.json`, then run:
+
+```bash
+python -m experiments.analysis.extract_recovery_results --config configs/recovery_analysis.json --output-dir outputs/recovery_input
+python -m experiments.analysis.analyze_recovery_results --input-dir outputs/recovery_input
+```
+
 Generated data, checkpoints, and results are excluded from Git.
 
 ## Tests

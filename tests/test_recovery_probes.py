@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from experiments.analysis import analyze_recovery_survival as survival
+from experiments.common import recovery_statistics as survival
 from experiments.studies import agnews_structure_comparison as agnews_model
 from experiments.models import agnews_no_drop_recovery as no_drop_recovery
 from experiments.common import router_logit_decomposition as decomposition

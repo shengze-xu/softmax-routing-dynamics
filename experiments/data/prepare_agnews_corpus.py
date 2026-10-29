@@ -280,7 +280,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "interpretation": (
             "AG News categories are four non-overlapping routing regimes for "
-            "the independent AG News structural replication."
+            "AG News routing experiments."
         ),
         "source": {
             name: {
@@ -307,7 +307,7 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "balanced_selection": (
                 "sort retained rows by document hash within class and take "
-                "the frozen per-class count"
+                "the configured per-class count"
             ),
             "output_shuffle_seed": OUTPUT_SHUFFLE_SEED,
             "sequence_length": SEQUENCE_LENGTH,

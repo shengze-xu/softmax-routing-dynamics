@@ -1,13 +1,9 @@
-"""Threshold sensitivity and all-complement fixed-token trajectory summaries.
-
-Usage: python3 -m experiments.analysis.analyze_recovery_additions
-Use experiments.analysis.extract_recovery_additions to prepare the inputs.
-"""
+"""Summarize confirmed recovery, threshold sensitivity, and fixed-token log-odds."""
 from pathlib import Path
 import argparse
 import json
 import numpy as np
-from experiments.analysis.analyze_recovery_endpoint_sensitivity import sign_p
+from experiments.common.recovery_statistics import exact_two_sided_sign_p as sign_p
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]

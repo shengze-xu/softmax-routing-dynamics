@@ -57,7 +57,7 @@ class LargeMultidomainPreparedDataset(base.PreparedDataset):
         if self.manifest.get("dataset_id") != DATASET_ID:
             raise ValueError("Unexpected large multidomain dataset ID")
         if self.manifest.get("status") != "prepared_multidomain_large_candidate":
-            raise ValueError("Dataset is not a prepared large multidomain candidate")
+            raise ValueError("Expected a prepared large multidomain dataset")
         self.arrays: dict[str, np.ndarray] = {}
         for name, metadata in self.manifest["arrays"].items():
             path = self.root / metadata["file"]
@@ -553,7 +553,7 @@ def run_multidomain_large(args: argparse.Namespace) -> dict[str, object]:
     if args.num_experts != 8 or args.top_k != 2:
         raise ValueError("large multidomain v1 requires eight experts and top-k=2")
     if any(layer >= args.num_layers for layer in MIDDLE_LAYERS):
-        raise ValueError("Frozen middle layers are invalid")
+        raise ValueError("Configured middle layers are invalid")
 
     random.seed(args.seed)
     np.random.seed(args.seed)

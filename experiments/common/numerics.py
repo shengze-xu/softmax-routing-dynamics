@@ -18,8 +18,7 @@ def add_torch_device_argument(parser: argparse.ArgumentParser) -> None:
         choices=("cpu", "cuda", "auto"),
         default=os.environ.get("MOE_DEVICE", "cpu"),
         help=(
-            "Execution device. Defaults to MOE_DEVICE when set, otherwise cpu "
-            "to preserve the frozen experiment protocol."
+            "Execution device. Defaults to MOE_DEVICE when set, otherwise cpu."
         ),
     )
 

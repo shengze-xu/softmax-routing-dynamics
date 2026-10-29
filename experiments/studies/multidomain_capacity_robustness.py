@@ -423,9 +423,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     if args.role == "primary" and args.seed not in PRIMARY_SEEDS:
         raise ValueError("capacity robustness primary seed must be 2401–2404")
     if float(args.capacity_factor) != CAPACITY_FACTOR:
-        raise ValueError("Frozen capacity factor changed")
+        raise ValueError("Capacity factor must be 1.25")
     if args.conditions != CONDITION_NAMES:
-        raise ValueError("Frozen capacity robustness condition inventory changed")
+        raise ValueError("Capacity comparison requires the configured routing conditions")
     if args.retain_checkpoints_for:
         raise ValueError("capacity robustness does not retain checkpoints")
 

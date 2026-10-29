@@ -474,8 +474,8 @@ def select_targets(
         eligible[str(layer)] = choices
     return targets, comparators, {
         "rule": (
-            "In each frozen middle layer, select the lowest held-out raw "
-            "pre-top-k mass at or above the frozen eligibility threshold; "
+            "In each configured middle layer, select the lowest held-out raw "
+            "pre-top-k mass at or above the configured eligibility threshold; "
             "use the highest-mass distinct expert as comparator."
         ),
         "held_out_raw_loads_by_layer": rows.tolist(),

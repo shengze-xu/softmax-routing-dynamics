@@ -23,9 +23,9 @@ def main():
     directory=args.output_dir
     directory.mkdir(parents=True,exist_ok=True)
     with args.input.open() as handle:
-        frozen = list(csv.DictReader(handle))
+        records = list(csv.DictReader(handle))
     ids = (0, 1, 3, 4)
-    chosen = [frozen[i] for i in ids]
+    chosen = [records[i] for i in ids]
     initial = np.array([[float(r[f'initial_p{k}']) for k in (1, 2, 3)] for r in chosen])
     logits = np.log(initial)
     logits -= logits.mean(axis=1, keepdims=True)

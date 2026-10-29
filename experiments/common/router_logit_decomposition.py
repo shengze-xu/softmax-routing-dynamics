@@ -7,9 +7,8 @@ For a fixed held-out token with router feature ``h`` and affine router
     q_1 - q_0 = (W_1 - W_0) h_0 + (b_1 - b_0)
                   + W_1 (h_1 - h_0).
 
-The first term is router-parameter motion and the second is feature motion.
-All calculations below are repeated in float64 from captured model tensors so
-that the reconstruction check is independent of autocast rounding.
+The first two terms describe parameter updates; the last describes feature
+changes. Reconstruction uses float64 copies of the captured tensors.
 """
 
 from __future__ import annotations

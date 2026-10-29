@@ -3,7 +3,7 @@ import unittest
 
 import pandas as pd
 
-from experiments.analysis.analyze_recovery_additions import BRANCHES, summarize_initial_masses
+from experiments.analysis.analyze_recovery_results import BRANCHES, summarize_initial_masses
 
 
 class InitialMassRMSTTests(unittest.TestCase):

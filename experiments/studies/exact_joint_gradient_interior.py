@@ -177,7 +177,7 @@ def simulate(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Audit the global interior-convergence theorem for exact joint gradient flow."
+        description="Simulate exact joint gradient flow and measure interior convergence."
     )
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(5)))
     parser.add_argument("--dts", type=float, nargs="+", default=[0.04, 0.02, 0.01])

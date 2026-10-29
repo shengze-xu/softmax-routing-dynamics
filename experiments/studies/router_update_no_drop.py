@@ -199,7 +199,7 @@ def select_target_domains(
         target_domains[layer] = int(np.argmax(row))
         means[str(layer)] = row.tolist()
     return target_domains, {
-        "rule": "Select the held-out regime with maximal pre-fork target-expert mass in each frozen middle layer.",
+        "rule": "Select the held-out regime with maximal pre-fork target-expert mass in each configured middle layer.",
         "target_domain_by_layer": target_domains,
         "heldout_target_mass_by_middle_layer_and_domain": means,
     }
@@ -987,7 +987,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     primary = args.role == "primary"
     additional = args.role == "additional"
     if primary and args.seed not in PRIMARY_NO_DROP_SEEDS:
-        raise ValueError("Seed is outside the frozen no-drop inventory")
+        raise ValueError("Seed is outside the configured no-drop cohort")
     if additional:
         if probe_protocol is None:
             raise ValueError("Additional role requires --probe-protocol")
@@ -1041,7 +1041,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         from experiments.common.recovery_evaluation_split import validation_sets
         evaluation_data, recovery_data, sample_design = validation_sets(
             dataset, int(config["limit_evaluation"]))
-        # Distinguish the new sampling design from every frozen result.
+        # Record the independent evaluation split in the protocol identifier.
         active_protocol_id += "_independent_eval_v1"
         config["protocol_id"] = active_protocol_id
     else:

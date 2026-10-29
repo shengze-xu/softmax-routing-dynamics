@@ -1,16 +1,7 @@
-#!/usr/bin/env python3
-"""Summarize encoded recovery times and paired seed contrasts.
-
-The historical non-recovery marker is 1,088 for a 1,024-step follow-up.
-Use analyze_confirmed_recovery for confirmation-time RMST."""
-
+"""Recovery curves and paired-seed statistics."""
 from __future__ import annotations
 
-import argparse
-import csv
-import json
 import math
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -23,36 +14,6 @@ DEFAULT_REFERENCE = "zero_advantage_gradient_projection_reference"
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
-
-
-def read_rows(specifications: list[str], tau: float) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for specification in specifications:
-        if "=" not in specification:
-            raise ValueError("Each --input must have the form COHORT=CSV_PATH")
-        cohort, raw_path = specification.split("=", 1)
-        path = Path(raw_path).resolve()
-        require(bool(cohort), f"Missing cohort label for {path}")
-        require(path.is_file(), f"Missing recovery table: {path}")
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            for source in csv.DictReader(handle):
-                event = source["persistent_recovery"].strip().lower() in {
-                    "1", "true", "yes"
-                }
-                time = min(float(source["restricted_recovery_step"]), tau)
-                rows.append(
-                    {
-                        "cohort": cohort,
-                        "seed": int(source["seed"]),
-                        "layer_zero_based": int(source["layer_zero_based"]),
-                        "initial_target_mass": float(source["initial_target_mass"]),
-                        "branch": source["branch"],
-                        "time": time,
-                        "event": bool(event and time < tau),
-                    }
-                )
-    require(bool(rows), "No recovery rows were read")
-    return rows
 
 
 def kaplan_meier(records: list[dict[str, Any]], tau: float) -> list[dict[str, Any]]:
@@ -168,14 +129,6 @@ def bootstrap_mean_interval(
     return float(np.quantile(means, 0.025)), float(np.quantile(means, 0.975))
 
 
-def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    require(bool(rows), f"No rows for {path.name}")
-    with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
 def analyze(
     records: list[dict[str, Any]],
     *,
@@ -271,41 +224,3 @@ def analyze(
         "cohorts": summary_rows,
     }
     return curve_rows, seed_rows, summary_rows, summary
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--input",
-        action="append",
-        required=True,
-        help="COHORT=/path/to/recovery_per_seed_layer_mass_branch.csv",
-    )
-    parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--tau", type=float, default=1088.0)
-    parser.add_argument("--bootstrap-draws", type=int, default=100000)
-    parser.add_argument("--bootstrap-seed", type=int, default=20260831)
-    args = parser.parse_args()
-    require(args.tau > 0, "--tau must be positive")
-    require(args.bootstrap_draws > 0, "--bootstrap-draws must be positive")
-    output = args.output_dir.resolve()
-    require(not output.exists(), f"Refusing to overwrite: {output}")
-    output.mkdir(parents=True)
-    records = read_rows(args.input, args.tau)
-    curves, seeds, summaries, summary = analyze(
-        records,
-        tau=args.tau,
-        bootstrap_draws=args.bootstrap_draws,
-        bootstrap_seed=args.bootstrap_seed,
-    )
-    write_csv(output / "survival_curve.csv", curves)
-    write_csv(output / "seed_level_restricted_mean.csv", seeds)
-    write_csv(output / "survival_summary.csv", summaries)
-    (output / "analysis_summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-
-
-if __name__ == "__main__":
-    main()

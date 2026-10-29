@@ -1,8 +1,4 @@
-"""Read-only extraction from original recovery results and fixed-token probes.
-
-Read run directories specified by --config. Write the extracted numerical
-records to --output-dir. Cohort mappings are explicit to keep capacity reruns separate.
-"""
+"""Extract recovery times and fixed-token trajectories from configured run directories."""
 import argparse
 import csv
 import gzip

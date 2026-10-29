@@ -179,7 +179,7 @@ def simulate(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Audit the PL residual theorem with a smooth nonquadratic loss.")
+    parser = argparse.ArgumentParser(description="Measure residual decay for joint flow with a smooth nonquadratic loss.")
     parser.add_argument("--seeds", type=int, nargs="+", default=list(range(5)))
     parser.add_argument("--dts", type=float, nargs="+", default=[0.04, 0.02, 0.01])
     parser.add_argument("--horizon", type=float, default=60.0)

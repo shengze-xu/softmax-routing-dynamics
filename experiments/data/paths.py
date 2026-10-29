@@ -6,5 +6,5 @@ from pathlib import Path
 
 
 def manifest_relative_path(path: Path, dataset_dir: Path) -> str:
-    """Store a path relative to the final dataset directory, not its staging dir."""
+    """Store a path relative to the final dataset directory."""
     return Path(os.path.relpath(path.resolve(), dataset_dir.resolve())).as_posix()

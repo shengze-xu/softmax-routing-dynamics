@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Independent AG News routing-structure replication implementation.
-
-This module does not import the earlier multidomain model, routing, logging,
-or training implementations and uses a non-overlapping AG News corpus.
-"""
+"""Autoregressive Transformer-MoE routing experiments on AG News."""
 
 from __future__ import annotations
 
@@ -68,7 +64,7 @@ class IndependentPreparedDataset:
             raise ValueError("Unsupported independent dataset schema")
         if self.manifest.get("status") != expected_status:
             raise ValueError(
-                "Dataset status does not match the frozen protocol"
+                "Dataset status does not match the configured dataset"
             )
         self.status = str(self.manifest["status"])
         selection = self.manifest["selection"]

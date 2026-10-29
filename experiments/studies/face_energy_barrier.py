@@ -336,7 +336,7 @@ def boundary_control(scenario: Scenario) -> tuple[tuple[int, ...], Array]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Audit finite stationary face-energy levels and barrier entry.")
+    parser = argparse.ArgumentParser(description="Compute stationary face-energy levels and barrier entry.")
     parser.add_argument("--dt", type=float, default=0.02)
     parser.add_argument("--horizon", type=float, default=2000.0)
     args = parser.parse_args()
