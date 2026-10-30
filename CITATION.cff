@@ -17,6 +17,7 @@ authors:
 preferred-citation:
   type: article
   title: "Softmax Routing Dynamics in Mixture-of-Experts Models: Collapse and Recovery"
+  url: "https://arxiv.org/abs/2610.39442"
   authors:
     - family-names: "Xu"
       given-names: "Shengze"

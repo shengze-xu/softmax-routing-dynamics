@@ -1,6 +1,11 @@
 # Softmax Routing Dynamics in Mixture-of-Experts Models: Collapse and Recovery
 
-Official implementation for the paper by Shengze Xu, Maolin Deng, and Tieyong Zeng.
+[![arXiv](https://img.shields.io/badge/arXiv-2610.39442-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2610.39442)
+[![Paper PDF](https://img.shields.io/badge/Paper-PDF-5A96CD)](https://arxiv.org/pdf/2610.39442)
+
+Official implementation for [**Softmax Routing Dynamics in Mixture-of-Experts Models:
+Collapse and Recovery**](https://arxiv.org/abs/2610.39442) by Shengze Xu, Maolin Deng,
+and Tieyong Zeng.
 The code covers continuous routing dynamics, neural routing experiments, and
 recovery interventions.
 
